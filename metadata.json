@@ -1,0 +1,5 @@
+{
+  "name": "PentaTrack v3",
+  "description": "Une application de suivi d'entraînement spécialisée pour le Pentathlon Moderne, permettant de centraliser les sessions de natation, escrime, obstacle, laser-run, course à pied, préparation physique et suivi médical.",
+  "requestFramePermissions": []
+}
