@@ -18,6 +18,8 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'add' | 'stats' | 'profile'>('home');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   
   const [sessions, setSessions] = useState<Session[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -26,29 +28,42 @@ const App: React.FC = () => {
 
   // Charger le profil utilisateur après auth
   const fetchProfile = async (userId: string) => {
+    setProfileLoading(true);
+    setAuthError(null);
+    console.log("Tentative de récupération du profil pour:", userId);
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
     
-    if (!error && data) {
+    if (error) {
+      console.error("Erreur détaillée Supabase (Profiles):", error);
+      setAuthError(`Erreur de profil: ${error.message} (Code: ${error.code})`);
+      // Si erreur de RLS ou profil introuvable, on déconnecte pour éviter le blocage
+      if (error.code === 'PGRST116' || error.code === '42P01') {
+         console.warn("Profil introuvable ou table inaccessible. Déconnexion forcée.");
+         await supabase.auth.signOut();
+      }
+    } else if (data) {
+      console.log("Profil chargé avec succès:", data);
       setCurrentUser(data as User);
     }
+    setProfileLoading(false);
   };
 
   const fetchSessions = useCallback(async () => {
     if (!currentUser) return;
     
-    // Changement ici : 'sessions' -> 'training_sessions'
     let query = supabase.from('training_sessions').select('*').order('date', { ascending: false });
     
-    // Si c'est un athlète, il ne voit que les siennes
     if (currentUser.role === 'athlete') {
       query = query.eq('user_id', currentUser.id);
     }
 
     const { data, error } = await query;
+    if (error) console.error("Erreur sessions:", error);
     if (!error && data) {
       setSessions(data as Session[]);
     }
@@ -62,6 +77,7 @@ const App: React.FC = () => {
       .select('*')
       .eq('club', currentUser.club);
     
+    if (error) console.error("Erreur club users:", error);
     if (!error && data) {
       setUsers(data as User[]);
     }
@@ -77,13 +93,15 @@ const App: React.FC = () => {
     });
 
     // 2. Écouter les changements d'auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth Event:", event);
       if (session) {
         fetchProfile(session.user.id);
       } else {
         setCurrentUser(null);
         setSessions([]);
         setUsers([]);
+        setAuthError(null);
       }
     });
 
@@ -168,7 +186,19 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <Login onLoginSuccess={() => {}} />;
+    return (
+      <div className="relative">
+        {profileLoading && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+            <div className="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              <p className="font-bold text-slate-900">Chargement du profil...</p>
+            </div>
+          </div>
+        )}
+        <Login onLoginSuccess={() => {}} externalError={authError} />
+      </div>
+    );
   }
 
   return (
