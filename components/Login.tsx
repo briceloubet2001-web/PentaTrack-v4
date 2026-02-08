@@ -6,11 +6,12 @@ import { supabase } from '../supabaseClient';
 
 interface LoginProps {
   onLoginSuccess: () => void;
+  externalError?: string | null;
 }
 
 const COACH_CODE = "PENTA2026_COACH";
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [role, setRole] = useState<UserRole>('athlete');
   const [email, setEmail] = useState('');
@@ -20,6 +21,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [coachCodeInput, setCoachCodeInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const displayError = externalError || error;
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +36,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         return;
       }
       
-      // 1. Création du compte Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -46,7 +48,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
 
       if (authData.user) {
-        // 2. Création du profil dans la table 'profiles'
         const { error: profileError } = await supabase.from('profiles').insert([
           {
             id: authData.user.id,
@@ -54,7 +55,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             name,
             club,
             role,
-            active: role === 'coach' // Les coachs sont actifs par défaut si le code est bon
+            active: role === 'coach'
           }
         ]);
 
@@ -68,7 +69,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         }
       }
     } else {
-      // Connexion
       const { error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -77,7 +77,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       if (loginError) {
         setError("Email ou mot de passe incorrect.");
       } else {
-        // Le useEffect dans App.tsx s'occupera de charger le profil
         onLoginSuccess();
       }
     }
@@ -95,9 +94,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <p className="text-slate-500">{isRegistering ? 'Créez votre profil' : 'Heureux de vous revoir'}</p>
         </div>
 
-        {error && (
-          <div className={`p-4 rounded-xl text-sm font-bold mb-6 text-center ${error.includes('réussie') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {error}
+        {displayError && (
+          <div className={`p-4 rounded-xl text-sm font-bold mb-6 text-center ${displayError.includes('réussie') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {displayError}
           </div>
         )}
 
