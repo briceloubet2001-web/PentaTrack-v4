@@ -79,9 +79,9 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
   const filteredSessions = useMemo(() => {
     let base = sessions;
     if (targetAthleteId) {
-      base = base.filter(s => s.userId === targetAthleteId);
+      base = base.filter(s => s.user_id === targetAthleteId);
     } else if (currentUser.role === 'athlete') {
-      base = base.filter(s => s.userId === currentUser.id);
+      base = base.filter(s => s.user_id === currentUser.id);
     } else {
       return [];
     }
@@ -132,8 +132,8 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
       if (!data[disciplineLabel]) {
         data[disciplineLabel] = { minutes: 0, km: 0, count: 0 };
       }
-      data[disciplineLabel].minutes += s.durationMinutes;
-      data[disciplineLabel].km += (s.distanceKm || 0);
+      data[disciplineLabel].minutes += s.duration_minutes;
+      data[disciplineLabel].km += (s.distance_km || 0);
       data[disciplineLabel].count += 1;
     });
     return Object.entries(data).map(([name, stats]) => ({ name, ...stats, hours: stats.minutes / 60 }));
@@ -164,8 +164,8 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
     filteredSessions.forEach(s => {
       const target = totals[s.discipline];
       if (target) {
-        target.minutes += s.durationMinutes;
-        target.km += s.distanceKm || 0;
+        target.minutes += s.duration_minutes;
+        target.km += s.distance_km || 0;
         target.count += 1;
       }
     });

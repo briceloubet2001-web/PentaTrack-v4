@@ -7,16 +7,16 @@ import { XMarkIcon, CheckIcon } from '@heroicons/react/24/solid';
 interface SessionFormProps {
   currentUser: User;
   initialSession?: Session;
-  onSave: (session: Session) => void;
+  onSave: (session: any) => void; // On laisse le type plus large pour le mapping
   onCancel: () => void;
 }
 
 const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, onSave, onCancel }) => {
   const [discipline, setDiscipline] = useState<Discipline | null>(initialSession?.discipline || null);
   const [date, setDate] = useState(initialSession?.date || new Date().toISOString().split('T')[0]);
-  const [duration, setDuration] = useState(initialSession?.durationMinutes.toString() || '');
-  const [distance, setDistance] = useState(initialSession?.distanceKm?.toString() || '');
-  const [selectedWorkTypes, setSelectedWorkTypes] = useState<string[]>(initialSession?.workTypes || []);
+  const [duration, setDuration] = useState(initialSession?.duration_minutes.toString() || '');
+  const [distance, setDistance] = useState(initialSession?.distance_km?.toString() || '');
+  const [selectedWorkTypes, setSelectedWorkTypes] = useState<string[]>(initialSession?.work_types || []);
   const [notes, setNotes] = useState(initialSession?.notes || '');
   const [focus, setFocus] = useState(initialSession?.focus || '');
   const [rpe, setRpe] = useState(initialSession?.rpe || 5);
@@ -25,20 +25,19 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
     e.preventDefault();
     if (!discipline) return;
 
-    const session: Session = {
-      id: initialSession?.id || Math.random().toString(36).substring(7),
-      userId: currentUser.id,
+    // Mapping CamelCase (UI) -> snake_case (DB)
+    const sessionData = {
       discipline,
       date,
-      durationMinutes: parseInt(duration) || 0,
-      workTypes: selectedWorkTypes,
-      distanceKm: parseFloat(distance) || undefined,
+      duration_minutes: parseInt(duration) || 0,
+      work_types: selectedWorkTypes,
+      distance_km: parseFloat(distance) || null,
       notes,
-      focus: discipline === 'Prépa Physique' ? focus : undefined,
+      focus: discipline === 'Prépa Physique' ? focus : null,
       rpe: rpe
     };
 
-    onSave(session);
+    onSave(sessionData);
   };
 
   const toggleWorkType = (type: string) => {

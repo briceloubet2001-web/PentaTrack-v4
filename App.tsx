@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   PlusIcon, 
   HomeIcon, 
@@ -12,65 +12,119 @@ import Dashboard from './components/Dashboard';
 import SessionForm from './components/SessionForm';
 import Stats from './components/Stats';
 import Login from './components/Login';
+import { supabase } from './supabaseClient';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'add' | 'stats' | 'profile'>('home');
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('pentatrack_currentUser');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [selectedAthleteIdForStats, setSelectedAthleteIdForStats] = useState<string | undefined>(undefined);
 
-  const [sessions, setSessions] = useState<Session[]>(() => {
-    const saved = localStorage.getItem('pentatrack_sessions');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('pentatrack_users');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  // Fonction pour recharger les utilisateurs depuis le stockage local
-  const refreshUsers = () => {
-    const saved = localStorage.getItem('pentatrack_users');
-    if (saved) {
-      setUsers(JSON.parse(saved));
+  // Charger le profil utilisateur après auth
+  const fetchProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (!error && data) {
+      setCurrentUser(data as User);
     }
   };
 
-  useEffect(() => {
-    localStorage.setItem('pentatrack_sessions', JSON.stringify(sessions));
-  }, [sessions]);
+  const fetchSessions = useCallback(async () => {
+    if (!currentUser) return;
+    
+    // Changement ici : 'sessions' -> 'training_sessions'
+    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false });
+    
+    // Si c'est un athlète, il ne voit que les siennes
+    if (currentUser.role === 'athlete') {
+      query = query.eq('user_id', currentUser.id);
+    }
 
-  useEffect(() => {
-    localStorage.setItem('pentatrack_users', JSON.stringify(users));
-  }, [users]);
-
-  // Recharger les utilisateurs quand l'utilisateur change (connexion/déconnexion)
-  useEffect(() => {
-    refreshUsers();
-    if (currentUser) {
-      localStorage.setItem('pentatrack_currentUser', JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem('pentatrack_currentUser');
+    const { data, error } = await query;
+    if (!error && data) {
+      setSessions(data as Session[]);
     }
   }, [currentUser]);
 
-  const handleSaveSession = (session: Session) => {
-    if (editingSession) {
-      setSessions(prev => prev.map(s => s.id === session.id ? session : s));
-    } else {
-      setSessions(prev => [session, ...prev]);
+  const fetchClubUsers = useCallback(async () => {
+    if (!currentUser || currentUser.role !== 'coach') return;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('club', currentUser.club);
+    
+    if (!error && data) {
+      setUsers(data as User[]);
     }
+  }, [currentUser]);
+
+  useEffect(() => {
+    // 1. Vérifier la session active au démarrage
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        fetchProfile(session.user.id);
+      }
+      setLoading(false);
+    });
+
+    // 2. Écouter les changements d'auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        fetchProfile(session.user.id);
+      } else {
+        setCurrentUser(null);
+        setSessions([]);
+        setUsers([]);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      fetchSessions();
+      if (currentUser.role === 'coach') {
+        fetchClubUsers();
+      }
+    }
+  }, [currentUser, fetchSessions, fetchClubUsers]);
+
+  const handleSaveSession = async (sessionData: any) => {
+    const isEditing = !!editingSession;
+    
+    if (isEditing) {
+      const { error } = await supabase
+        .from('training_sessions')
+        .update(sessionData)
+        .eq('id', editingSession.id);
+      if (error) alert("Erreur lors de la modification");
+    } else {
+      const { error } = await supabase
+        .from('training_sessions')
+        .insert([{ ...sessionData, user_id: currentUser?.id }]);
+      if (error) alert("Erreur lors de l'ajout");
+    }
+    
+    fetchSessions();
     setEditingSession(null);
     setActiveTab('home');
   };
 
-  const deleteSession = (id: string) => {
-    setSessions(prev => prev.filter(s => s.id !== id));
+  const deleteSession = async (id: string) => {
+    if (window.confirm("Supprimer cette séance ?")) {
+      const { error } = await supabase.from('training_sessions').delete().eq('id', id);
+      if (!error) fetchSessions();
+    }
   };
 
   const startEdit = (session: Session) => {
@@ -83,12 +137,17 @@ const App: React.FC = () => {
     setActiveTab('add');
   };
 
-  const handleToggleUserStatus = (userId: string, active: boolean) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, active } : u));
+  const handleToggleUserStatus = async (userId: string, active: boolean) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ active })
+      .eq('id', userId);
+    if (!error) fetchClubUsers();
   };
 
-  const handleRejectUser = (userId: string) => {
-    setUsers(prev => prev.filter(u => u.id !== userId));
+  const handleRejectUser = async (userId: string) => {
+    const { error } = await supabase.from('profiles').delete().eq('id', userId);
+    if (!error) fetchClubUsers();
   };
 
   const handleViewStats = (athleteId: string) => {
@@ -96,13 +155,20 @@ const App: React.FC = () => {
     setActiveTab('stats');
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setActiveTab('home');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   if (!currentUser) {
-    return <Login onLogin={setCurrentUser} />;
+    return <Login onLoginSuccess={() => {}} />;
   }
 
   return (
@@ -166,7 +232,7 @@ const App: React.FC = () => {
             onToggleUserStatus={handleToggleUserStatus}
             onRejectUser={handleRejectUser}
             onViewStats={handleViewStats}
-            onRefreshUsers={refreshUsers}
+            onRefreshUsers={fetchClubUsers}
           />
         )}
         {activeTab === 'add' && (

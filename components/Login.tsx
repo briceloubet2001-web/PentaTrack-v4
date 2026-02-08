@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
-import { User, UserRole, Club } from '../types';
+import { UserRole, Club } from '../types';
 import { ShieldCheckIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../supabaseClient';
 
 interface LoginProps {
-  onLogin: (user: User) => void;
+  onLoginSuccess: () => void;
 }
 
 const COACH_CODE = "PENTA2026_COACH";
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [role, setRole] = useState<UserRole>('athlete');
   const [email, setEmail] = useState('');
@@ -18,55 +19,69 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [club, setClub] = useState<Club>('RMA');
   const [coachCodeInput, setCoachCodeInput] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    const savedUsers: User[] = JSON.parse(localStorage.getItem('pentatrack_users') || '[]');
+    setLoading(true);
 
     if (isRegistering) {
       if (role === 'coach' && coachCodeInput !== COACH_CODE) {
         setError("Code coach invalide.");
+        setLoading(false);
         return;
       }
       
-      if (savedUsers.find(u => u.email === email)) {
-        setError("Cet email est déjà utilisé.");
-        return;
-      }
-
-      const newUser: User = {
-        id: Math.random().toString(36).substring(7),
+      // 1. Création du compte Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password, // In a real app, hash this
-        name,
-        club,
-        role,
-        active: role === 'coach' // Coaches are active by default
-      };
+        password,
+      });
 
-      const updatedUsers = [...savedUsers, newUser];
-      localStorage.setItem('pentatrack_users', JSON.stringify(updatedUsers));
-      
-      if (role === 'athlete') {
-        setError("Inscription réussie ! En attente de validation par votre coach.");
-        setIsRegistering(false);
-      } else {
-        onLogin(newUser);
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      if (authData.user) {
+        // 2. Création du profil dans la table 'profiles'
+        const { error: profileError } = await supabase.from('profiles').insert([
+          {
+            id: authData.user.id,
+            email,
+            name,
+            club,
+            role,
+            active: role === 'coach' // Les coachs sont actifs par défaut si le code est bon
+          }
+        ]);
+
+        if (profileError) {
+          setError("Erreur lors de la création du profil : " + profileError.message);
+        } else if (role === 'athlete') {
+          setError("Inscription réussie ! En attente de validation par votre coach.");
+          setIsRegistering(false);
+        } else {
+          onLoginSuccess();
+        }
       }
     } else {
-      const user = savedUsers.find(u => u.email === email && u.password === password);
-      if (!user) {
+      // Connexion
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (loginError) {
         setError("Email ou mot de passe incorrect.");
-        return;
+      } else {
+        // Le useEffect dans App.tsx s'occupera de charger le profil
+        onLoginSuccess();
       }
-      if (user.role === 'athlete' && !user.active) {
-        setError("Votre compte n'a pas encore été validé par votre coach.");
-        return;
-      }
-      onLogin(user);
     }
+    setLoading(false);
   };
 
   return (
@@ -135,8 +150,12 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" />
           </div>
 
-          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg mt-4">
-            {isRegistering ? "S'inscrire" : "Se connecter"}
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg mt-4 disabled:bg-slate-400 flex justify-center"
+          >
+            {loading ? <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div> : (isRegistering ? "S'inscrire" : "Se connecter")}
           </button>
         </form>
 

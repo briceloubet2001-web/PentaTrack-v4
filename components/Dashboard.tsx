@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { Session, User, Club } from '../types';
+import { Session, User } from '../types';
 import { DISCIPLINE_CONFIG } from '../constants';
 import { formatDuration } from '../utils';
 import { 
@@ -40,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   onRefreshUsers
 }) => {
   // ATHLETE VIEW LOGIC
-  const athleteSessions = useMemo(() => sessions.filter(s => s.userId === currentUser.id), [sessions, currentUser.id]);
+  const athleteSessions = useMemo(() => sessions.filter(s => s.user_id === currentUser.id), [sessions, currentUser.id]);
   
   const weeklySessions = useMemo(() => {
     const startOfWeek = new Date();
@@ -66,12 +66,12 @@ const Dashboard: React.FC<DashboardProps> = ({
     };
 
     weeklySessions.forEach(s => {
-      res.totalMinutes += s.durationMinutes || 0;
-      if (s.discipline === 'Course') res.kmCourseTotal += s.distanceKm || 0;
-      if (s.discipline === 'Natation') res.kmNatation += s.distanceKm || 0;
+      res.totalMinutes += s.duration_minutes || 0;
+      if (s.discipline === 'Course') res.kmCourseTotal += s.distance_km || 0;
+      if (s.discipline === 'Natation') res.kmNatation += s.distance_km || 0;
       if (s.discipline === 'Laser Run') {
-        res.kmCourseTotal += s.distanceKm || 0;
-        res.kmLaserRun += s.distanceKm || 0;
+        res.kmCourseTotal += s.distance_km || 0;
+        res.kmLaserRun += s.distance_km || 0;
       }
       if (s.discipline === 'Obstacles') res.countObstacles += 1;
       if (s.discipline === 'Tir') res.countTir += 1;
@@ -153,7 +153,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             ) : (
               activeAthletes.map(u => {
-                const userSessions = sessions.filter(s => s.userId === u.id);
+                const userSessions = sessions.filter(s => s.user_id === u.id);
                 return (
                   <div key={u.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
@@ -316,14 +316,14 @@ const SessionItem: React.FC<{ session: Session; onDelete: () => void; onClick: (
           )}
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
-          {session.durationMinutes > 0 && (
-            <span className="flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" /> {formatDuration(session.durationMinutes)}</span>
+          {session.duration_minutes > 0 && (
+            <span className="flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" /> {formatDuration(session.duration_minutes)}</span>
           )}
-          {session.distanceKm && (
-            <span className="flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" /> {session.distanceKm} km</span>
+          {session.distance_km && (
+            <span className="flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" /> {session.distance_km} km</span>
           )}
-          {session.workTypes.length > 0 && (
-            <span className="flex items-center gap-1 truncate"><TagIcon className="w-3.5 h-3.5" /> {session.workTypes.join(', ')}</span>
+          {session.work_types.length > 0 && (
+            <span className="flex items-center gap-1 truncate"><TagIcon className="w-3.5 h-3.5" /> {session.work_types.join(', ')}</span>
           )}
         </div>
       </div>

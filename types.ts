@@ -15,25 +15,24 @@ export type Club = 'RMA' | 'SALANQUE';
 export interface User {
   id: string;
   email: string;
-  password?: string;
   name: string;
   club: Club;
   role: UserRole;
-  active: boolean; // Managed by coach
+  active: boolean;
 }
 
 export interface Session {
   id: string;
-  userId: string; // Owner of the session
+  user_id: string; // Nom de colonne DB
   discipline: Discipline;
   date: string;
-  durationMinutes: number;
-  workTypes: string[];
-  distanceKm?: number;
+  duration_minutes: number; // Nom de colonne DB
+  work_types: string[]; // Nom de colonne DB
+  distance_km?: number; // Nom de colonne DB
   notes?: string;
-  shootingDone?: boolean;
   rpe: number;
   focus?: string;
+  created_at?: string;
 }
 
 export type StatsPeriod = 'day' | 'week' | 'month' | 'year' | 'custom';
