@@ -5,7 +5,9 @@ import {
   HomeIcon, 
   ChartBarIcon,
   UserCircleIcon,
-  ArrowLeftOnRectangleIcon
+  ArrowLeftOnRectangleIcon,
+  ClockIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { Session, User } from './types';
 import Dashboard from './components/Dashboard';
@@ -54,7 +56,7 @@ const App: React.FC = () => {
   };
 
   const fetchSessions = useCallback(async () => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.active) return;
     
     let query = supabase.from('training_sessions').select('*').order('date', { ascending: false });
     
@@ -197,6 +199,55 @@ const App: React.FC = () => {
           </div>
         )}
         <Login onLoginSuccess={() => {}} externalError={authError} />
+      </div>
+    );
+  }
+
+  // --- NOUVEAU : Blocage des athlètes non-validés ---
+  if (currentUser.role === 'athlete' && !currentUser.active) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-center">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in zoom-in duration-300">
+          <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ClockIcon className="w-10 h-10" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Validation en attente</h1>
+          <p className="text-slate-600">
+            Merci de votre inscription, <span className="font-bold text-slate-900">{currentUser.name}</span> !
+          </p>
+          <p className="text-slate-500 text-sm leading-relaxed">
+            Votre compte pour le club <span className="font-bold text-blue-600">{currentUser.club}</span> doit être validé par votre entraîneur avant de pouvoir accéder à l'application.
+          </p>
+          
+          <div className="pt-4 space-y-3">
+            <button 
+              onClick={() => fetchProfile(currentUser.id)}
+              disabled={profileLoading}
+              className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-2 disabled:bg-slate-300"
+            >
+              {profileLoading ? (
+                <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div>
+              ) : (
+                <>
+                  <ArrowPathIcon className="w-5 h-5" />
+                  Actualiser mon statut
+                </>
+              )}
+            </button>
+            
+            <button 
+              onClick={handleLogout}
+              className="w-full bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+            >
+              <ArrowLeftOnRectangleIcon className="w-4 h-4" />
+              Se déconnecter
+            </button>
+          </div>
+          
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold pt-4">
+            PentaTrack v3
+          </p>
+        </div>
       </div>
     );
   }
