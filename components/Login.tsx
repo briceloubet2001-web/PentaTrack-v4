@@ -39,6 +39,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            role: role, // Injection du rôle dans le badge JWT
+          }
+        }
       });
 
       if (authError) {
