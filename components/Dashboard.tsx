@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Session, User } from '../types';
 import { DISCIPLINE_CONFIG } from '../constants';
 import { formatDuration } from '../utils';
@@ -13,7 +13,8 @@ import {
   XCircleIcon,
   UserIcon,
   ChartBarIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ChevronLeftIcon
 } from '@heroicons/react/24/outline';
 
 interface DashboardProps {
@@ -39,17 +40,34 @@ const Dashboard: React.FC<DashboardProps> = ({
   onViewStats,
   onRefreshUsers
 }) => {
-  // ATHLETE VIEW LOGIC
-  const athleteSessions = useMemo(() => sessions.filter(s => s.user_id === currentUser.id), [sessions, currentUser.id]);
-  
+  // État pour le coach : quel athlète est sélectionné pour la vue "miroir"
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
+
+  // ID cible pour le calcul des statistiques (soit l'athlète lui-même, soit l'athlète choisi par le coach)
+  const targetId = currentUser.role === 'coach' ? selectedAthleteId : currentUser.id;
+  const isViewingMirror = currentUser.role === 'coach' && selectedAthleteId !== null;
+
+  // Récupération des données de l'utilisateur cible
+  const targetUser = useMemo(() => {
+    if (!targetId) return null;
+    return allUsers.find(u => u.id === targetId) || (targetId === currentUser.id ? currentUser : null);
+  }, [allUsers, targetId, currentUser]);
+
+  // Sessions filtrées pour l'utilisateur cible
+  const targetSessions = useMemo(() => {
+    if (!targetId) return [];
+    return sessions.filter(s => s.user_id === targetId);
+  }, [sessions, targetId]);
+
+  // Calcul des statistiques hebdomadaires pour l'utilisateur cible
   const weeklySessions = useMemo(() => {
     const startOfWeek = new Date();
     startOfWeek.setHours(0, 0, 0, 0);
     const day = startOfWeek.getDay();
     const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
     startOfWeek.setDate(diff);
-    return athleteSessions.filter(s => new Date(s.date) >= startOfWeek);
-  }, [athleteSessions]);
+    return targetSessions.filter(s => new Date(s.date) >= startOfWeek);
+  }, [targetSessions]);
 
   const stats = useMemo(() => {
     const res = {
@@ -83,7 +101,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     return res;
   }, [weeklySessions]);
 
-  // COACH VIEW LOGIC
+  // LOGIQUE VUE CLUB (COACH UNIQUEMENT)
   const pendingAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active === false), 
   [allUsers, currentUser.club]);
@@ -92,7 +110,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active === true), 
   [allUsers, currentUser.club]);
 
-  if (currentUser.role === 'coach') {
+  // --- RENDU 1 : VUE LISTE CLUB (COACH SANS ATHLÈTE SÉLECTIONNÉ) ---
+  if (currentUser.role === 'coach' && !selectedAthleteId) {
     return (
       <div className="space-y-8 animate-in fade-in duration-500">
         <header className="flex justify-between items-center">
@@ -155,19 +174,23 @@ const Dashboard: React.FC<DashboardProps> = ({
               activeAthletes.map(u => {
                 const userSessions = sessions.filter(s => s.user_id === u.id);
                 return (
-                  <div key={u.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                  <div 
+                    key={u.id} 
+                    onClick={() => setSelectedAthleteId(u.id)}
+                    className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-blue-300 transition-all cursor-pointer group"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
                           {u.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{u.name}</div>
+                          <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{u.name}</div>
                           <div className="text-xs text-slate-400">{userSessions.length} sessions au total</div>
                         </div>
                       </div>
                       <button 
-                        onClick={() => onViewStats?.(u.id)}
+                        onClick={(e) => { e.stopPropagation(); onViewStats?.(u.id); }}
                         className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-1"
                       >
                         <ChartBarIcon className="w-3.5 h-3.5" /> Voir Stats
@@ -199,16 +222,38 @@ const Dashboard: React.FC<DashboardProps> = ({
     );
   }
 
+  // --- RENDU 2 : VUE DÉTAILLÉE (ATHLÈTE OU COACH EN MODE MIROIR) ---
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <header className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Salut, {currentUser.name}!</h1>
-          <p className="text-slate-500">Ton club : {currentUser.club}</p>
+        <div className="flex flex-col gap-1">
+          {isViewingMirror && (
+            <button 
+              onClick={() => setSelectedAthleteId(null)}
+              className="flex items-center gap-1 text-blue-600 text-sm font-bold hover:underline mb-2"
+            >
+              <ChevronLeftIcon className="w-4 h-4" /> Retour au club
+            </button>
+          )}
+          <h1 className="text-3xl font-bold text-slate-900">
+            {isViewingMirror ? `Suivi de ${targetUser?.name}` : `Salut, ${currentUser.name}!`}
+          </h1>
+          <p className="text-slate-500">
+            {isViewingMirror ? `Consultation des données du club ${currentUser.club}` : `Ton club : ${currentUser.club}`}
+          </p>
         </div>
+        
+        {isViewingMirror && (
+          <button 
+            onClick={() => onViewStats?.(targetId!)}
+            className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-lg"
+          >
+            <ChartBarIcon className="w-4 h-4" /> Voir Stats Détaillées
+          </button>
+        )}
       </header>
 
-      {/* Top Stats Grid */}
+      {/* Cartes de Stats du Haut */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard 
           label="Sessions / Semaine" 
@@ -230,7 +275,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         />
       </div>
 
-      {/* Discipline Breakdown */}
+      {/* Bilan par discipline */}
       <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <span>📊</span> Bilan discipline / semaine
@@ -245,22 +290,25 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </section>
 
-      {/* Recent Activity */}
+      {/* Activité Récente */}
       <section>
         <h2 className="text-xl font-bold mb-4">Dernières sessions</h2>
-        <p className="text-xs text-slate-400 mb-3 italic">Clique sur une séance pour la modifier.</p>
+        {!isViewingMirror && (
+          <p className="text-xs text-slate-400 mb-3 italic">Clique sur une séance pour la modifier.</p>
+        )}
         <div className="space-y-3">
-          {athleteSessions.length === 0 ? (
+          {targetSessions.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
               Aucune session enregistrée.
             </div>
           ) : (
-            athleteSessions.slice(0, 10).map(s => (
+            targetSessions.slice(0, 10).map(s => (
               <SessionItem 
                 key={s.id} 
                 session={s} 
-                onDelete={() => onDelete?.(s.id)} 
-                onClick={() => onEdit?.(s)} 
+                onDelete={!isViewingMirror ? () => onDelete?.(s.id) : undefined} 
+                onClick={!isViewingMirror ? () => onEdit?.(s) : undefined} 
+                isReadOnly={isViewingMirror}
               />
             ))
           )}
@@ -287,7 +335,7 @@ const MiniStat: React.FC<{ label: string; value: string; icon: string }> = ({ la
   </div>
 );
 
-const SessionItem: React.FC<{ session: Session; onDelete: () => void; onClick: () => void }> = ({ session, onDelete, onClick }) => {
+const SessionItem: React.FC<{ session: Session; onDelete?: () => void; onClick?: () => void; isReadOnly?: boolean }> = ({ session, onDelete, onClick, isReadOnly }) => {
   const config = DISCIPLINE_CONFIG[session.discipline];
   
   const rpeColor = (rpe: number) => {
@@ -300,7 +348,7 @@ const SessionItem: React.FC<{ session: Session; onDelete: () => void; onClick: (
   return (
     <div 
       onClick={onClick}
-      className="group bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all hover:shadow-md cursor-pointer hover:border-blue-200"
+      className={`group bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all ${isReadOnly ? 'cursor-default' : 'hover:shadow-md cursor-pointer hover:border-blue-200'}`}
     >
       <div className={`w-12 h-12 rounded-full ${config.color} flex items-center justify-center text-white text-xl shadow-inner shrink-0`}>
         {config.icon}
@@ -327,12 +375,14 @@ const SessionItem: React.FC<{ session: Session; onDelete: () => void; onClick: (
           )}
         </div>
       </div>
-      <button 
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all text-slate-300"
-      >
-        <TrashIcon className="w-5 h-5" />
-      </button>
+      {!isReadOnly && onDelete && (
+        <button 
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all text-slate-300"
+        >
+          <TrashIcon className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 };
