@@ -1,26 +1,32 @@
 
-import React, { useState } from 'react';
-import { UserRole, Club } from '../types';
+import React, { useState, useEffect } from 'react';
+import { UserRole, ClubInfo } from '../types';
 import { ShieldCheckIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
 
 interface LoginProps {
+  availableClubs: ClubInfo[];
   onLoginSuccess: () => void;
   externalError?: string | null;
 }
 
-const COACH_CODE = "PENTA2026_COACH";
-
-const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
+const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalError }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [role, setRole] = useState<UserRole>('athlete');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [club, setClub] = useState<Club>('RMA');
+  const [selectedClubName, setSelectedClubName] = useState('');
   const [coachCodeInput, setCoachCodeInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Initialiser le club par défaut une fois que les clubs sont chargés
+  useEffect(() => {
+    if (availableClubs.length > 0 && !selectedClubName) {
+      setSelectedClubName(availableClubs[0].name);
+    }
+  }, [availableClubs]);
 
   const displayError = externalError || error;
 
@@ -30,10 +36,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
     setLoading(true);
 
     if (isRegistering) {
-      if (role === 'coach' && coachCodeInput !== COACH_CODE) {
-        setError("Code coach invalide.");
-        setLoading(false);
-        return;
+      // Vérification dynamique du code coach par club
+      if (role === 'coach') {
+        const selectedClub = availableClubs.find(c => c.name === selectedClubName);
+        if (!selectedClub || coachCodeInput !== selectedClub.coach_secret) {
+          setError(`Code d'accès invalide pour le club ${selectedClubName}.`);
+          setLoading(false);
+          return;
+        }
       }
       
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -41,7 +51,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
         password,
         options: {
           data: {
-            role: role, // Injection du rôle dans le badge JWT
+            role: role,
           }
         }
       });
@@ -58,9 +68,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
             id: authData.user.id,
             email,
             name,
-            club,
+            club: selectedClubName,
             role,
-            active: role === 'coach'
+            active: role === 'coach' // Les coachs sont auto-validés par le code secret
           }
         ]);
 
@@ -131,15 +141,24 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Club</label>
-                <select value={club} onChange={e => setClub(e.target.value as Club)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none">
-                  <option value="RMA">RMA</option>
-                  <option value="SALANQUE">SALANQUE</option>
+                <select 
+                  value={selectedClubName} 
+                  onChange={e => setSelectedClubName(e.target.value)} 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                >
+                  {availableClubs.length === 0 ? (
+                    <option disabled>Chargement des clubs...</option>
+                  ) : (
+                    availableClubs.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))
+                  )}
                 </select>
               </div>
               {role === 'coach' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Code d'accès Entraîneur</label>
-                  <input required type="password" value={coachCodeInput} onChange={e => setCoachCodeInput(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Code secret" />
+                <div className="animate-in slide-in-from-top-2">
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Code d'accès Entraîneur ({selectedClubName})</label>
+                  <input required type="password" value={coachCodeInput} onChange={e => setCoachCodeInput(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Code secret du club" />
                 </div>
               )}
             </>
@@ -156,7 +175,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, externalError }) => {
 
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || (isRegistering && availableClubs.length === 0)}
             className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg mt-4 disabled:bg-slate-400 flex justify-center"
           >
             {loading ? <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div> : (isRegistering ? "S'inscrire" : "Se connecter")}
