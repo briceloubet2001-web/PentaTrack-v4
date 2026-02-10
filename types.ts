@@ -10,7 +10,16 @@ export type Discipline =
   | 'Médical';
 
 export type UserRole = 'athlete' | 'coach';
-export type Club = 'RMA' | 'SALANQUE';
+// On passe en string pour accepter n'importe quel club venant de la DB
+export type Club = string;
+
+export interface ClubInfo {
+  id: string;
+  name: string;
+  slug: string;
+  coach_secret: string;
+  primary_color: string;
+}
 
 export interface User {
   id: string;
@@ -23,12 +32,12 @@ export interface User {
 
 export interface Session {
   id: string;
-  user_id: string; // Nom de colonne DB
+  user_id: string;
   discipline: Discipline;
   date: string;
-  duration_minutes: number; // Nom de colonne DB
-  work_types: string[]; // Nom de colonne DB
-  distance_km?: number; // Nom de colonne DB
+  duration_minutes: number;
+  work_types: string[];
+  distance_km?: number;
   notes?: string;
   rpe: number;
   focus?: string;
