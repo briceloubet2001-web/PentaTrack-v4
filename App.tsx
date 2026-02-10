@@ -9,7 +9,7 @@ import {
   ClockIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
-import { Session, User } from './types';
+import { Session, User, ClubInfo } from './types';
 import Dashboard from './components/Dashboard';
 import SessionForm from './components/SessionForm';
 import Stats from './components/Stats';
@@ -19,6 +19,7 @@ import { supabase } from './supabaseClient';
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'add' | 'stats' | 'profile'>('home');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [availableClubs, setAvailableClubs] = useState<ClubInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -28,11 +29,24 @@ const App: React.FC = () => {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [selectedAthleteIdForStats, setSelectedAthleteIdForStats] = useState<string | undefined>(undefined);
 
+  // Charger la liste des clubs depuis la DB
+  const fetchClubs = async () => {
+    const { data, error } = await supabase
+      .from('clubs')
+      .select('*')
+      .order('name');
+    
+    if (error) {
+      console.error("Erreur lors du chargement des clubs:", error);
+    } else if (data) {
+      setAvailableClubs(data as ClubInfo[]);
+    }
+  };
+
   // Charger le profil utilisateur après auth
   const fetchProfile = async (userId: string) => {
     setProfileLoading(true);
     setAuthError(null);
-    console.log("Tentative de récupération du profil pour:", userId);
     
     const { data, error } = await supabase
       .from('profiles')
@@ -41,15 +55,12 @@ const App: React.FC = () => {
       .single();
     
     if (error) {
-      console.error("Erreur détaillée Supabase (Profiles):", error);
-      setAuthError(`Erreur de profil: ${error.message} (Code: ${error.code})`);
-      // Si erreur de RLS ou profil introuvable, on déconnecte pour éviter le blocage
+      console.error("Erreur profil:", error);
+      setAuthError(`Erreur de profil: ${error.message}`);
       if (error.code === 'PGRST116' || error.code === '42P01') {
-         console.warn("Profil introuvable ou table inaccessible. Déconnexion forcée.");
          await supabase.auth.signOut();
       }
     } else if (data) {
-      console.log("Profil chargé avec succès:", data);
       setCurrentUser(data as User);
     }
     setProfileLoading(false);
@@ -65,7 +76,6 @@ const App: React.FC = () => {
     }
 
     const { data, error } = await query;
-    if (error) console.error("Erreur sessions:", error);
     if (!error && data) {
       setSessions(data as Session[]);
     }
@@ -79,14 +89,15 @@ const App: React.FC = () => {
       .select('*')
       .eq('club', currentUser.club);
     
-    if (error) console.error("Erreur club users:", error);
     if (!error && data) {
       setUsers(data as User[]);
     }
   }, [currentUser]);
 
   useEffect(() => {
-    // 1. Vérifier la session active au démarrage
+    // Charger les clubs dès le début
+    fetchClubs();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         fetchProfile(session.user.id);
@@ -94,9 +105,7 @@ const App: React.FC = () => {
       setLoading(false);
     });
 
-    // 2. Écouter les changements d'auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth Event:", event);
       if (session) {
         fetchProfile(session.user.id);
       } else {
@@ -198,12 +207,15 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-        <Login onLoginSuccess={() => {}} externalError={authError} />
+        <Login 
+          availableClubs={availableClubs} 
+          onLoginSuccess={() => {}} 
+          externalError={authError} 
+        />
       </div>
     );
   }
 
-  // --- NOUVEAU : Blocage des athlètes non-validés ---
   if (currentUser.role === 'athlete' && !currentUser.active) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-center">
@@ -243,10 +255,6 @@ const App: React.FC = () => {
               Se déconnecter
             </button>
           </div>
-          
-          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold pt-4">
-            PentaTrack v3
-          </p>
         </div>
       </div>
     );
@@ -301,7 +309,6 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Main Content Area */}
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 md:p-8">
         {activeTab === 'home' && (
           <Dashboard 
