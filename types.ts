@@ -19,6 +19,8 @@ export interface ClubInfo {
   slug: string;
   coach_secret: string;
   primary_color: string;
+  secondary_color?: string;
+  logo_url?: string;
 }
 
 export interface User {
