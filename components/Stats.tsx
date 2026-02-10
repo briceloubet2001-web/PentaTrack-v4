@@ -35,14 +35,12 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [targetAthleteId, setTargetAthleteId] = useState<string | null>(initialAthleteId || (currentUser.role === 'athlete' ? currentUser.id : null));
   
-  // Date de référence pour la navigation
   const [refDate, setRefDate] = useState(new Date());
 
   const clubAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active),
   [allUsers, currentUser.club]);
 
-  // Calcul des bornes de la période actuelle
   const periodBounds = useMemo(() => {
     const start = new Date(refDate);
     const end = new Date(refDate);
@@ -51,12 +49,10 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
     } else if (period === 'week') {
-      // Aller au Lundi de la semaine de refDate
       const day = start.getDay();
       const diff = start.getDate() - day + (day === 0 ? -6 : 1);
       start.setDate(diff);
       start.setHours(0, 0, 0, 0);
-      
       end.setTime(start.getTime() + 6 * 24 * 60 * 60 * 1000 + 23 * 3600 * 1000 + 3599000);
     } else if (period === 'month') {
       start.setDate(1);
@@ -184,7 +180,7 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
           </p>
           <p className="text-sm text-slate-600 font-medium">Durée: {formatDuration(data.minutes)}</p>
           {(data.name === 'Course' || data.name === 'Natation' || data.name === 'Laser Run') && (
-            <p className="text-sm text-blue-600 font-bold">Distance: {data.km.toFixed(1)} km</p>
+            <p className="text-sm text-club-primary font-bold">Distance: {data.km.toFixed(1)} km</p>
           )}
           <p className="text-[10px] text-slate-400 font-bold uppercase">Sessions: {data.count}</p>
         </div>
@@ -229,12 +225,11 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
         <h1 className="text-3xl font-bold text-slate-900">Statistiques</h1>
         <p className="text-slate-500">
           {currentUser.role === 'coach' 
-            ? (targetAthleteId ? `Consultation de : ${currentAthleteName}` : 'Sélectionnez un athlète pour voir ses statistiques') 
-            : 'Analyse de tes performances personnelles.'}
+            ? (targetAthleteId ? `Consultation de : ${currentAthleteName}` : 'Sélectionnez un athlète') 
+            : 'Analyse de tes performances.'}
         </p>
       </header>
 
-      {/* Athlete selection for Coach */}
       {currentUser.role === 'coach' && (
         <section className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
           <h2 className="text-xs font-bold text-slate-400 uppercase mb-3 px-2 tracking-widest">Choisir un athlète</h2>
@@ -245,9 +240,10 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                 onClick={() => setTargetAthleteId(u.id)}
                 className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
                   targetAthleteId === u.id 
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-md' 
+                    ? 'text-white shadow-md' 
                     : 'bg-slate-50 border-transparent text-slate-600 hover:border-slate-200'
                 }`}
+                style={targetAthleteId === u.id ? { backgroundColor: 'var(--club-primary)', borderColor: 'var(--club-primary)' } : {}}
               >
                 {u.name}
               </button>
@@ -258,9 +254,7 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
 
       {targetAthleteId ? (
         <>
-          {/* Controls Container */}
           <div className="space-y-4">
-            {/* Period Toggles */}
             <div className="flex flex-wrap gap-2">
               {(['day', 'week', 'month', 'year', 'custom'] as StatsPeriod[]).map(p => (
                 <button
@@ -268,16 +262,16 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                   onClick={() => { setPeriod(p); setRefDate(new Date()); }}
                   className={`px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wider border-2 transition-all ${
                     period === p 
-                      ? 'bg-blue-600 border-blue-600 text-white' 
+                      ? 'text-white' 
                       : 'bg-white border-slate-100 text-slate-500 hover:border-slate-300'
                   }`}
+                  style={period === p ? { backgroundColor: 'var(--club-primary)', borderColor: 'var(--club-primary)' } : {}}
                 >
                   {p === 'day' ? 'Jour' : p === 'week' ? 'Semaine' : p === 'month' ? 'Mois' : p === 'year' ? 'Année' : 'Perso'}
                 </button>
               ))}
             </div>
 
-            {/* Navigation Buttons (Only if not custom) */}
             {period !== 'custom' && (
               <div className="flex items-center justify-between bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
                 <button 
@@ -288,7 +282,7 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                 </button>
                 
                 <div className="flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5 text-blue-600" />
+                  <CalendarIcon className="w-5 h-5 text-club-primary" />
                   <span className="font-bold text-slate-900 capitalize">{periodLabel}</span>
                 </div>
 
@@ -317,7 +311,6 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
 
           {filteredSessions.length > 0 ? (
             <>
-              {/* Chart: Volume */}
               <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <h2 className="text-xl font-bold mb-6">Répartition de la durée</h2>
                 <div className="h-64 w-full">
@@ -337,7 +330,6 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                 </div>
               </section>
 
-              {/* Chart: RPE Evolution (Only if multiple days) */}
               {period !== 'day' && (
                 <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                   <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -350,19 +342,26 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                         <XAxis dataKey="date" fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
                         <YAxis domain={[0, 10]} fontSize={10} fontWeight="bold" axisLine={false} tickLine={false} />
                         <Tooltip content={<CustomRPETooltip />} />
-                        <Line type="monotone" dataKey="avgRpe" stroke="#2563eb" strokeWidth={3} dot={{ fill: '#2563eb', r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} name="Moyenne RPE" />
+                        <Line 
+                          type="monotone" 
+                          dataKey="avgRpe" 
+                          stroke="var(--club-primary)" 
+                          strokeWidth={3} 
+                          dot={{ fill: 'var(--club-primary)', r: 4 }} 
+                          activeDot={{ r: 6, strokeWidth: 0 }} 
+                          name="Moyenne RPE" 
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </section>
               )}
 
-              {/* Detailed Totals */}
               <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Object.entries(disciplineTotals).map(([disc, stats]: [string, DisciplineTotalStats]) => {
                   if (stats.count === 0) return null;
                   return (
-                    <div key={disc} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition-all hover:border-slate-200">
+                    <div key={disc} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm transition-all hover:border-club-primary">
                       <div className="flex items-center gap-3 mb-3">
                         <span className="text-2xl">{DISCIPLINE_CONFIG[disc as Discipline]?.icon}</span>
                         <h3 className="font-bold text-slate-900">{disc}</h3>
@@ -379,7 +378,7 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                         {DISCIPLINE_CONFIG[disc as Discipline]?.hasDistance && (
                           <div className="col-span-2 p-3 rounded-xl text-center mt-1 bg-slate-50">
                             <div className="text-[10px] text-slate-400 font-bold uppercase">Distance Totale</div>
-                            <div className="text-xl font-bold text-slate-900">{stats.km.toFixed(1)} km</div>
+                            <div className="text-xl font-bold text-club-primary">{stats.km.toFixed(1)} km</div>
                           </div>
                         )}
                       </div>
@@ -394,7 +393,7 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
                <p className="text-slate-400 font-medium">Aucune donnée pour cette période.</p>
                <button 
                  onClick={() => setRefDate(new Date())}
-                 className="mt-4 text-blue-600 text-sm font-bold hover:underline"
+                 className="mt-4 text-club-primary text-sm font-bold hover:underline"
                >
                  Revenir à aujourd'hui
                </button>
