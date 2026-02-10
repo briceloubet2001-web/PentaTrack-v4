@@ -7,7 +7,7 @@ import { XMarkIcon, CheckIcon } from '@heroicons/react/24/solid';
 interface SessionFormProps {
   currentUser: User;
   initialSession?: Session;
-  onSave: (session: any) => void; // On laisse le type plus large pour le mapping
+  onSave: (session: any) => void;
   onCancel: () => void;
 }
 
@@ -25,7 +25,6 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
     e.preventDefault();
     if (!discipline) return;
 
-    // Mapping CamelCase (UI) -> snake_case (DB)
     const sessionData = {
       discipline,
       date,
@@ -95,7 +94,7 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
                 type="date" 
                 value={date} 
                 onChange={e => setDate(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-club-primary appearance-none"
                 required
               />
             </div>
@@ -108,7 +107,7 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
                   value={duration} 
                   onChange={e => setDuration(e.target.value)}
                   placeholder="ex: 90"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-club-primary"
                   required
                 />
               </div>
@@ -123,7 +122,7 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
                   value={distance} 
                   onChange={e => setDistance(e.target.value)}
                   placeholder="ex: 3.5"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-club-primary"
                   required
                 />
               </div>
@@ -139,9 +138,13 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
                 max="10" 
                 value={rpe} 
                 onChange={e => setRpe(parseInt(e.target.value))}
-                className="flex-1 h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="flex-1 h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer"
+                style={{ accentColor: 'var(--club-primary)' }}
               />
-              <span className="w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-xl font-bold text-xl shrink-0">
+              <span 
+                className="w-12 h-12 flex items-center justify-center text-white rounded-xl font-bold text-xl shrink-0"
+                style={{ backgroundColor: 'var(--club-primary)' }}
+              >
                 {rpe}
               </span>
             </div>
@@ -158,9 +161,10 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
                     onClick={() => toggleWorkType(type)}
                     className={`px-4 py-2 rounded-full text-sm font-bold border-2 transition-all flex items-center gap-2 ${
                       selectedWorkTypes.includes(type)
-                        ? 'bg-blue-600 border-blue-600 text-white'
+                        ? 'text-white'
                         : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
                     }`}
+                    style={selectedWorkTypes.includes(type) ? { backgroundColor: 'var(--club-primary)', borderColor: 'var(--club-primary)' } : {}}
                   >
                     {selectedWorkTypes.includes(type) && <CheckIcon className="w-4 h-4" />}
                     {type}
@@ -178,7 +182,7 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
                 value={focus} 
                 onChange={e => setFocus(e.target.value)}
                 placeholder="ex: Force / Explosivité"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-club-primary"
               />
             </div>
           )}
@@ -188,14 +192,15 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
             <textarea 
               value={notes} 
               onChange={e => setNotes(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 h-24"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-club-primary h-24"
               placeholder="Sensations, détails..."
             />
           </div>
 
           <button 
             type="submit" 
-            className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+            className="w-full text-white font-bold py-4 rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2"
+            style={{ backgroundColor: 'var(--club-secondary)' }}
           >
             <CheckIcon className="w-5 h-5" />
             {initialSession ? 'Mettre à jour' : 'Enregistrer'}
