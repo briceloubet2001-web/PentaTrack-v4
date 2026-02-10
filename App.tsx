@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   PlusIcon, 
   HomeIcon, 
@@ -29,7 +29,25 @@ const App: React.FC = () => {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [selectedAthleteIdForStats, setSelectedAthleteIdForStats] = useState<string | undefined>(undefined);
 
-  // Charger la liste des clubs depuis la DB
+  // Club actuel de l'utilisateur pour le thème
+  const currentClubInfo = useMemo(() => {
+    if (!currentUser) return null;
+    return availableClubs.find(c => c.name === currentUser.club) || null;
+  }, [currentUser, availableClubs]);
+
+  // Injection des couleurs dynamiques via CSS Variables
+  useEffect(() => {
+    if (currentClubInfo) {
+      const root = document.documentElement;
+      root.style.setProperty('--club-primary', currentClubInfo.primary_color);
+      root.style.setProperty('--club-secondary', currentClubInfo.secondary_color || '#1e293b');
+    } else {
+      const root = document.documentElement;
+      root.style.setProperty('--club-primary', '#2563eb'); // Bleu par défaut
+      root.style.setProperty('--club-secondary', '#1e293b');
+    }
+  }, [currentClubInfo]);
+
   const fetchClubs = async () => {
     const { data, error } = await supabase
       .from('clubs')
@@ -43,7 +61,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Charger le profil utilisateur après auth
   const fetchProfile = async (userId: string) => {
     setProfileLoading(true);
     setAuthError(null);
@@ -95,7 +112,6 @@ const App: React.FC = () => {
   }, [currentUser]);
 
   useEffect(() => {
-    // Charger les clubs dès le début
     fetchClubs();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -220,22 +236,27 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-2xl space-y-6 animate-in fade-in zoom-in duration-300">
-          <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ClockIcon className="w-10 h-10" />
-          </div>
+          {currentClubInfo?.logo_url ? (
+            <img src={currentClubInfo.logo_url} alt="Logo Club" className="w-24 h-24 object-contain mx-auto mb-4" />
+          ) : (
+            <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ClockIcon className="w-10 h-10" />
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-slate-900">Validation en attente</h1>
           <p className="text-slate-600">
             Merci de votre inscription, <span className="font-bold text-slate-900">{currentUser.name}</span> !
           </p>
           <p className="text-slate-500 text-sm leading-relaxed">
-            Votre compte pour le club <span className="font-bold text-blue-600">{currentUser.club}</span> doit être validé par votre entraîneur avant de pouvoir accéder à l'application.
+            Votre compte pour le club <span className="font-bold" style={{ color: 'var(--club-primary)' }}>{currentUser.club}</span> doit être validé par votre entraîneur.
           </p>
           
           <div className="pt-4 space-y-3">
             <button 
               onClick={() => fetchProfile(currentUser.id)}
               disabled={profileLoading}
-              className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-2 disabled:bg-slate-300"
+              className="w-full text-white font-bold py-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:bg-slate-300"
+              style={{ backgroundColor: 'var(--club-primary)' }}
             >
               {profileLoading ? (
                 <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div>
@@ -262,10 +283,17 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-24 md:pb-0 md:pl-64 flex flex-col bg-slate-50">
+      <style>{`
+        .bg-club-primary { background-color: var(--club-primary); }
+        .text-club-primary { color: var(--club-primary); }
+        .border-club-primary { border-color: var(--club-primary); }
+        .bg-club-secondary { background-color: var(--club-secondary); }
+      `}</style>
+      
       {/* Desktop Sidebar */}
       <nav className="hidden md:flex fixed left-0 top-0 h-full w-64 bg-slate-900 text-white flex-col p-6 shadow-2xl z-50">
         <div className="text-2xl font-bold tracking-tight mb-10 flex items-center gap-2">
-          <span className="bg-blue-600 p-1.5 rounded-lg">P5</span>
+          <span className="bg-club-primary p-1.5 rounded-lg">P5</span>
           PentaTrack
         </div>
         
@@ -313,6 +341,7 @@ const App: React.FC = () => {
         {activeTab === 'home' && (
           <Dashboard 
             currentUser={currentUser}
+            currentClubInfo={currentClubInfo}
             sessions={sessions} 
             allUsers={users}
             onDelete={deleteSession} 
@@ -349,12 +378,19 @@ const App: React.FC = () => {
               <p className="text-slate-500">Récapitulatif de tes informations de compte.</p>
             </header>
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
-              <div className="w-24 h-24 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-4xl font-bold mb-6">
+              <div 
+                className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold mb-6 text-white"
+                style={{ backgroundColor: 'var(--club-primary)' }}
+              >
                 {currentUser.name.charAt(0)}
               </div>
               <h2 className="text-2xl font-bold text-slate-900">{currentUser.name}</h2>
               <p className="text-slate-400 mb-6">{currentUser.email}</p>
               
+              {currentClubInfo?.logo_url && (
+                <img src={currentClubInfo.logo_url} alt="Logo" className="h-12 object-contain mb-8" />
+              )}
+
               <div className="w-full grid grid-cols-2 gap-4 pt-6 border-t border-slate-50">
                 <div className="text-center">
                   <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Rôle</div>
@@ -414,7 +450,7 @@ const App: React.FC = () => {
 const NavItem: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
   <button 
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${active ? 'bg-club-primary text-white shadow-lg' : 'hover:bg-slate-800 text-slate-400'}`}
   >
     {icon}
     <span className="font-medium">{label}</span>
@@ -424,7 +460,7 @@ const NavItem: React.FC<{ active: boolean; onClick: () => void; icon: React.Reac
 const MobileNavItem: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
   <button 
     onClick={onClick}
-    className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-blue-600' : 'text-slate-400'}`}
+    className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-club-primary' : 'text-slate-400'}`}
   >
     {icon}
     <span className="text-[10px] font-bold uppercase">{label}</span>
