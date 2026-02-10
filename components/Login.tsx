@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, ClubInfo } from '../types';
 import { ShieldCheckIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
@@ -21,12 +21,15 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Initialiser le club par défaut une fois que les clubs sont chargés
   useEffect(() => {
     if (availableClubs.length > 0 && !selectedClubName) {
       setSelectedClubName(availableClubs[0].name);
     }
   }, [availableClubs]);
+
+  const selectedClub = useMemo(() => {
+    return availableClubs.find(c => c.name === selectedClubName) || null;
+  }, [selectedClubName, availableClubs]);
 
   const displayError = externalError || error;
 
@@ -36,9 +39,7 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
     setLoading(true);
 
     if (isRegistering) {
-      // Vérification dynamique du code coach par club
       if (role === 'coach') {
-        const selectedClub = availableClubs.find(c => c.name === selectedClubName);
         if (!selectedClub || coachCodeInput !== selectedClub.coach_secret) {
           setError(`Code d'accès invalide pour le club ${selectedClubName}.`);
           setLoading(false);
@@ -70,7 +71,7 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
             name,
             club: selectedClubName,
             role,
-            active: role === 'coach' // Les coachs sont auto-validés par le code secret
+            active: role === 'coach'
           }
         ]);
 
@@ -98,13 +99,24 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
     setLoading(false);
   };
 
+  const primaryColor = selectedClub?.primary_color || '#2563eb';
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden p-8">
         <div className="text-center mb-8">
-          <div className="inline-block bg-blue-600 p-3 rounded-2xl mb-4">
-             <IdentificationIcon className="w-8 h-8 text-white" />
-          </div>
+          {isRegistering && selectedClub?.logo_url ? (
+            <div className="h-20 flex items-center justify-center mb-4 animate-in fade-in zoom-in">
+              <img src={selectedClub.logo_url} alt="Logo" className="h-full object-contain" />
+            </div>
+          ) : (
+            <div 
+              className="inline-block p-3 rounded-2xl mb-4 text-white"
+              style={{ backgroundColor: primaryColor }}
+            >
+               <IdentificationIcon className="w-8 h-8" />
+            </div>
+          )}
           <h1 className="text-3xl font-bold text-slate-900">PentaTrack</h1>
           <p className="text-slate-500">{isRegistering ? 'Créez votre profil' : 'Heureux de vous revoir'}</p>
         </div>
@@ -120,14 +132,16 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
             <button
               type="button"
               onClick={() => setRole('athlete')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${role === 'athlete' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${role === 'athlete' ? 'bg-white shadow-sm' : 'text-slate-500'}`}
+              style={role === 'athlete' ? { color: primaryColor } : {}}
             >
               <UserIcon className="w-4 h-4" /> Athlète
             </button>
             <button
               type="button"
               onClick={() => setRole('coach')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${role === 'coach' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-sm transition-all ${role === 'coach' ? 'bg-white shadow-sm' : 'text-slate-500'}`}
+              style={role === 'coach' ? { color: primaryColor } : {}}
             >
               <ShieldCheckIcon className="w-4 h-4" /> Entraîneur
             </button>
@@ -135,16 +149,17 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
 
           {isRegistering && (
             <>
-              <div>
+              <div className="animate-in slide-in-from-top-2">
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Nom Complet</label>
-                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Jean Dupont" />
+                <input required type="text" value={name} onChange={e => setName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none" style={{ '--tw-ring-color': primaryColor } as any} placeholder="Jean Dupont" />
               </div>
-              <div>
+              <div className="animate-in slide-in-from-top-2">
                 <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Club</label>
                 <select 
                   value={selectedClubName} 
                   onChange={e => setSelectedClubName(e.target.value)} 
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none"
+                  style={{ '--tw-ring-color': primaryColor } as any}
                 >
                   {availableClubs.length === 0 ? (
                     <option disabled>Chargement des clubs...</option>
@@ -158,7 +173,7 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
               {role === 'coach' && (
                 <div className="animate-in slide-in-from-top-2">
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Code d'accès Entraîneur ({selectedClubName})</label>
-                  <input required type="password" value={coachCodeInput} onChange={e => setCoachCodeInput(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Code secret du club" />
+                  <input required type="password" value={coachCodeInput} onChange={e => setCoachCodeInput(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none" style={{ '--tw-ring-color': primaryColor } as any} placeholder="Code secret du club" />
                 </div>
               )}
             </>
@@ -166,24 +181,29 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
 
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
-            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="votre@email.com" />
+            <input required type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none" style={{ '--tw-ring-color': primaryColor } as any} placeholder="votre@email.com" />
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
-            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" />
+            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none" style={{ '--tw-ring-color': primaryColor } as any} placeholder="••••••••" />
           </div>
 
           <button 
             type="submit" 
             disabled={loading || (isRegistering && availableClubs.length === 0)}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition-all shadow-lg mt-4 disabled:bg-slate-400 flex justify-center"
+            className="w-full text-white font-bold py-4 rounded-xl transition-all shadow-lg mt-4 disabled:bg-slate-400 flex justify-center"
+            style={{ backgroundColor: primaryColor }}
           >
             {loading ? <div className="animate-spin h-5 w-5 border-b-2 border-white rounded-full"></div> : (isRegistering ? "S'inscrire" : "Se connecter")}
           </button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-          <button onClick={() => { setIsRegistering(!isRegistering); setError(''); }} className="text-sm font-bold text-blue-600 hover:text-blue-800">
+          <button 
+            onClick={() => { setIsRegistering(!isRegistering); setError(''); }} 
+            className="text-sm font-bold hover:opacity-70"
+            style={{ color: primaryColor }}
+          >
             {isRegistering ? "J'ai déjà un compte" : "Pas encore de compte ? S'inscrire"}
           </button>
         </div>
