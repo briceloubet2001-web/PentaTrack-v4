@@ -1,7 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole, ClubInfo } from '../types';
-import { ShieldCheckIcon, UserIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { 
+  ShieldCheckIcon, 
+  UserIcon, 
+  IdentificationIcon,
+  EyeIcon,
+  EyeSlashIcon
+} from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
 
 interface LoginProps {
@@ -20,6 +26,10 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
   const [coachCodeInput, setCoachCodeInput] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // États pour la visibilité
+  const [showPassword, setShowPassword] = useState(false);
+  const [showCoachCode, setShowCoachCode] = useState(false);
 
   useEffect(() => {
     if (availableClubs.length > 0 && !selectedClubName) {
@@ -173,7 +183,25 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
               {role === 'coach' && (
                 <div className="animate-in slide-in-from-top-2">
                   <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Code d'accès Entraîneur ({selectedClubName})</label>
-                  <input required type="password" value={coachCodeInput} onChange={e => setCoachCodeInput(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none" style={{ '--tw-ring-color': primaryColor } as any} placeholder="Code secret du club" />
+                  <div className="relative">
+                    <input 
+                      required 
+                      type={showCoachCode ? "text" : "password"} 
+                      value={coachCodeInput} 
+                      onChange={e => setCoachCodeInput(e.target.value)} 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 focus:ring-2 outline-none" 
+                      style={{ '--tw-ring-color': primaryColor } as any} 
+                      placeholder="Code secret du club" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCoachCode(!showCoachCode)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-200 rounded-lg transition-colors"
+                      style={{ color: primaryColor }}
+                    >
+                      {showCoachCode ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -185,7 +213,25 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Mot de passe</label>
-            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 outline-none" style={{ '--tw-ring-color': primaryColor } as any} placeholder="••••••••" />
+            <div className="relative">
+              <input 
+                required 
+                type={showPassword ? "text" : "password"} 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-12 py-3 focus:ring-2 outline-none" 
+                style={{ '--tw-ring-color': primaryColor } as any} 
+                placeholder="••••••••" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-200 rounded-lg transition-colors"
+                style={{ color: primaryColor }}
+              >
+                {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
 
           <button 
@@ -200,7 +246,12 @@ const Login: React.FC<LoginProps> = ({ availableClubs, onLoginSuccess, externalE
 
         <div className="mt-8 pt-6 border-t border-slate-100 text-center">
           <button 
-            onClick={() => { setIsRegistering(!isRegistering); setError(''); }} 
+            onClick={() => { 
+              setIsRegistering(!isRegistering); 
+              setError('');
+              setShowPassword(false);
+              setShowCoachCode(false);
+            }} 
             className="text-sm font-bold hover:opacity-70"
             style={{ color: primaryColor }}
           >
