@@ -14,7 +14,10 @@ import {
   UserIcon,
   ChartBarIcon,
   ArrowPathIcon,
-  ChevronLeftIcon
+  ChevronLeftIcon,
+  ChatBubbleLeftEllipsisIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline';
 
 interface DashboardProps {
@@ -335,6 +338,7 @@ const MiniStat: React.FC<{ label: string; value: string; icon: string }> = ({ la
 );
 
 const SessionItem: React.FC<{ session: Session; onDelete?: () => void; onClick?: () => void; isReadOnly?: boolean }> = ({ session, onDelete, onClick, isReadOnly }) => {
+  const [showNotes, setShowNotes] = useState(false);
   const config = DISCIPLINE_CONFIG[session.discipline];
   
   const rpeColor = (rpe: number) => {
@@ -345,42 +349,77 @@ const SessionItem: React.FC<{ session: Session; onDelete?: () => void; onClick?:
   };
 
   return (
-    <div 
-      onClick={onClick}
-      className={`group bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all ${isReadOnly ? 'cursor-default' : 'hover:shadow-md cursor-pointer hover:border-club-primary'}`}
-    >
-      <div className={`w-12 h-12 rounded-full ${config.color} flex items-center justify-center text-white text-xl shadow-inner shrink-0`}>
-        {config.icon}
-      </div>
-      <div className="flex-1 min-w-0">
+    <div className="flex flex-col gap-0 animate-in fade-in slide-in-from-top-1 duration-300">
+      <div 
+        onClick={onClick}
+        className={`group bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 transition-all ${isReadOnly ? 'cursor-default' : 'hover:shadow-md cursor-pointer hover:border-club-primary'}`}
+      >
+        <div className={`w-12 h-12 rounded-full ${config.color} flex items-center justify-center text-white text-xl shadow-inner shrink-0`}>
+          {config.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-slate-900 truncate">{session.discipline}</h3>
+            <span className="text-xs text-slate-400">• {new Date(session.date).toLocaleDateString()}</span>
+            {session.rpe && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${rpeColor(session.rpe)} flex items-center gap-1`}>
+                <BoltIcon className="w-2.5 h-2.5" /> RPE {session.rpe}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
+            {session.duration_minutes > 0 && (
+              <span className="flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" /> {formatDuration(session.duration_minutes)}</span>
+            )}
+            {session.distance_km && (
+              <span className="flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" /> {session.distance_km} km</span>
+            )}
+            {session.work_types.length > 0 && (
+              <span className="flex items-center gap-1 truncate"><TagIcon className="w-3.5 h-3.5" /> {session.work_types.join(', ')}</span>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
-          <h3 className="font-bold text-slate-900 truncate">{session.discipline}</h3>
-          <span className="text-xs text-slate-400">• {new Date(session.date).toLocaleDateString()}</span>
-          {session.rpe && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${rpeColor(session.rpe)} flex items-center gap-1`}>
-              <BoltIcon className="w-2.5 h-2.5" /> RPE {session.rpe}
-            </span>
+          {isReadOnly && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setShowNotes(!showNotes); }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${showNotes ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+            >
+              <ChatBubbleLeftEllipsisIcon className="w-3.5 h-3.5" />
+              Notes
+              {showNotes ? <ChevronUpIcon className="w-3 h-3 ml-0.5" /> : <ChevronDownIcon className="w-3 h-3 ml-0.5" />}
+            </button>
           )}
-        </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
-          {session.duration_minutes > 0 && (
-            <span className="flex items-center gap-1"><ClockIcon className="w-3.5 h-3.5" /> {formatDuration(session.duration_minutes)}</span>
-          )}
-          {session.distance_km && (
-            <span className="flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" /> {session.distance_km} km</span>
-          )}
-          {session.work_types.length > 0 && (
-            <span className="flex items-center gap-1 truncate"><TagIcon className="w-3.5 h-3.5" /> {session.work_types.join(', ')}</span>
+
+          {!isReadOnly && onDelete && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all text-slate-300"
+            >
+              <TrashIcon className="w-5 h-5" />
+            </button>
           )}
         </div>
       </div>
-      {!isReadOnly && onDelete && (
-        <button 
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 hover:text-red-600 rounded-lg transition-all text-slate-300"
-        >
-          <TrashIcon className="w-5 h-5" />
-        </button>
+      
+      {/* Accordion Notes - Only for Coach View */}
+      {isReadOnly && showNotes && (
+        <div className="mt-1 mx-4 p-4 bg-slate-50 rounded-b-xl border-x border-b border-slate-200 animate-in slide-in-from-top-2 duration-200 shadow-inner">
+          <div className="flex items-center gap-2 mb-2">
+            <ChatBubbleLeftEllipsisIcon className="w-4 h-4 text-slate-400" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Commentaires de l'athlète</span>
+          </div>
+          <p className={`text-sm leading-relaxed ${session.notes ? 'text-slate-700 italic' : 'text-slate-400 italic font-medium'}`}>
+            {session.notes ? `« ${session.notes} »` : "Aucune note pour cette séance."}
+          </p>
+          {session.focus && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Focus séance</span>
+               <span className="text-xs font-semibold text-club-primary">{session.focus}</span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
