@@ -1,5 +1,5 @@
 // Version du cache
-const CACHE_NAME = 'pentatrack-v4';
+const CACHE_NAME = 'pentatrack-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
