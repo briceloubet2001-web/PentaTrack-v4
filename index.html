@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1e293b">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/000000/triathlon.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -42,9 +42,10 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker enregistré !'))
-            .catch(err => console.log('Erreur SW:', err));
+          // Utilisation d'un chemin relatif pour l'enregistrement du SW
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker enregistré avec succès !'))
+            .catch(err => console.log('Erreur lors de l\'enregistrement du SW:', err));
         });
       }
     </script>
