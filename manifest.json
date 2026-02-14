@@ -1,0 +1,23 @@
+
+{
+  "name": "PentaTrack - Suivi Pentathlon",
+  "short_name": "PentaTrack",
+  "description": "Suivi d'entraînement pour le Pentathlon Moderne",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e293b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/000000/triathlon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/000000/triathlon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
