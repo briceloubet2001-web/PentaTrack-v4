@@ -1,5 +1,5 @@
 // Version du cache
-const CACHE_NAME = 'pentatrack-v4';
+const CACHE_NAME = 'pentatrack-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -9,7 +9,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
+// Gestionnaire de fetch obligatoire pour la PWA mais configuré en pur "pass-through"
 self.addEventListener('fetch', (event) => {
-  // Mode "Pass-through" : on laisse tout passer vers le réseau sans interférence
-  return;
+  event.respondWith(fetch(event.request));
 });
