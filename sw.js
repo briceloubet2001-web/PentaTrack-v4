@@ -1,22 +1,21 @@
 
-const CACHE_NAME = 'pentatrack-v1';
-const ASSETS = [
-  '/',
-  '/index.html'
-];
+// Version du cache
+const CACHE_NAME = 'pentatrack-v2';
+
+// On n'intercepte rien de façon bloquante pour éviter l'écran blanc.
+// On se contente de remplir les conditions minimales pour l'installation PWA.
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
-  );
+  self.skipWaiting();
 });
 
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
+// Stratégie "Network Only" ou "Network with Cache Fallback" simplifiée
+// Cela garantit que le navigateur charge toujours les derniers fichiers JS (esm.sh etc)
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
+  // On laisse le navigateur gérer la requête normalement
+  return;
 });
