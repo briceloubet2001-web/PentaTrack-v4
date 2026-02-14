@@ -7,7 +7,8 @@ import {
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
   ClockIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { Session, User, ClubInfo } from './types';
 import Dashboard from './components/Dashboard';
@@ -29,6 +30,33 @@ const App: React.FC = () => {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [selectedAthleteIdForStats, setSelectedAthleteIdForStats] = useState<string | undefined>(undefined);
 
+  // PWA Install Prompt
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    });
+
+    window.addEventListener('appinstalled', () => {
+      setShowInstallBtn(false);
+      setDeferredPrompt(null);
+    });
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    }
+  };
+
   // Club actuel de l'utilisateur pour le thème
   const currentClubInfo = useMemo(() => {
     if (!currentUser) return null;
@@ -41,9 +69,12 @@ const App: React.FC = () => {
       const root = document.documentElement;
       root.style.setProperty('--club-primary', currentClubInfo.primary_color);
       root.style.setProperty('--club-secondary', currentClubInfo.secondary_color || '#1e293b');
+      // Update theme color for PWA
+      const themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) themeMeta.setAttribute('content', currentClubInfo.secondary_color || '#1e293b');
     } else {
       const root = document.documentElement;
-      root.style.setProperty('--club-primary', '#2563eb'); // Bleu par défaut
+      root.style.setProperty('--club-primary', '#2563eb');
       root.style.setProperty('--club-secondary', '#1e293b');
     }
   }, [currentClubInfo]);
@@ -326,6 +357,18 @@ const App: React.FC = () => {
           />
         </div>
 
+        {showInstallBtn && (
+          <div className="mb-4 px-2">
+            <button 
+              onClick={handleInstallClick}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/20 animate-pulse"
+            >
+              <ArrowDownTrayIcon className="w-5 h-5" />
+              <span className="font-bold text-xs uppercase tracking-wider">Installer l'appli</span>
+            </button>
+          </div>
+        )}
+
         <div className="pt-6 border-t border-slate-800">
            <button 
              onClick={handleLogout}
@@ -373,9 +416,19 @@ const App: React.FC = () => {
         )}
         {activeTab === 'profile' && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            <header>
-              <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
-              <p className="text-slate-500">Récapitulatif de tes informations de compte.</p>
+            <header className="flex justify-between items-start">
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
+                <p className="text-slate-500">Récapitulatif de tes informations de compte.</p>
+              </div>
+              {showInstallBtn && (
+                <button 
+                  onClick={handleInstallClick}
+                  className="bg-club-primary text-white p-2 rounded-xl shadow-lg md:hidden"
+                >
+                  <ArrowDownTrayIcon className="w-6 h-6" />
+                </button>
+              )}
             </header>
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center">
               <div 
