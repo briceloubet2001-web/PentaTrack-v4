@@ -1,9 +1,8 @@
-
 {
   "name": "PentaTrack - Suivi Pentathlon",
   "short_name": "PentaTrack",
   "description": "Suivi d'entraînement pour le Pentathlon Moderne",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#1e293b",
