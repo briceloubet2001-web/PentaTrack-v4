@@ -8,13 +8,13 @@
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#1F2937">
-    <!-- Cache busting v13 -->
-    <link rel="manifest" href="./manifest.json?v=13">
+    <meta name="theme-color" content="#F59E0B">
+    <!-- Cache busting du manifest pour forcer la prise en compte du mode 'standalone' sans badge -->
+    <link rel="manifest" href="./manifest.json?v=11">
     
-    <!-- Icône Anthracite Minimal "5" - Médaille réduite (r=110) et fond gris anthracite -->
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMxRjI5MzciIC8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxMTAiIGZpbGw9IiNENEFGMzciIHN0cm9rZT0iIzlBN0IyQyIgc3Ryb2tlLXdpZHRoPSI4IiAvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iOTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRDcwMCIgc3Ryb2tlLXdpZHRoPSI2IiAvPjx0ZXh0IHg9IjUwJSIgeT0iNTIlSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zaXplPSIxNDAiIHN0eWxlPSJmaWx0ZXI6IGRyb3Atc2hhZG93KDAgOHB4IDhweCByZ2JhKDAsMCwwLDAuNSkpIj41PC90ZXh0Pjwvc3ZnPg==">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMxRjI5MzciIC8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxMTAiIGZpbGw9IiNENEFGMzciIHN0cm9rZT0iIzlBN0IyQyIgc3Ryb2tlLXdpZHRoPSI4IiAvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iOTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI0ZGRDcwMCIgc3Ryb2tlLXdpZHRoPSI2IiAvPjx0ZXh0IHg9IjUwJSIgeT0iNTIlSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zaXplPSIxNDAiIHN0eWxlPSJmaWx0ZXI6IGRyb3Atc2hhZG93KDAgOHB4IDhweCByZ2JhKDAsMCwwLDAuNSkpIj41PC90ZXh0Pjwvc3ZnPg==">
+    <!-- Icône Midnight Gold Slim "5" - Taille réduite pour laisser respirer le fond bleu -->
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMwRjE3MkEiIC8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNDAiIGZpbGw9IiNENEFGMzciIHN0cm9rZT0iIzlBN0IyQyIgc3Ryb2tlLXdpZHRoPSI4IiAvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMTE1IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkQ3MDAiIHN0cm9rZS13aWR0aD0iNiIgLz48dGV4dCB4PSI1MCUiIHk9IjUyJSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zaXplPSIxODAiIHN0eWxlPSJmaWx0ZXI6IGRyb3Atc2hhZG93KDAgOHB4IDhweCByZ2JhKDAsMCwwLDAuNSkpIj41PC90ZXh0Pjwvc3ZnPg==">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIGZpbGw9IiMwRjE3MkEiIC8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNDAiIGZpbGw9IiNENEFGMzciIHN0cm9rZT0iIzlBN0IyQyIgc3Ryb2tlLXdpZHRoPSI4IiAvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMTE1IiBmaWxsPSJub25lIiBzdHJva2U9IiNGRkQ3MDAiIHN0cm9rZS13aWR0aD0iNiIgLz48dGV4dCB4PSI1MCUiIHk9IjUyJSIgZG9taW5hbnQtYmFzZWxpbmU9ImNlbnRyYWwiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zaXplPSIxODAiIHN0eWxlPSJmaWx0ZXI6IGRyb3Atc2hhZG93KDAgOHB4IDhweCByZ2JhKDAsMCwwLDAuNSkpIj41PC90ZXh0Pjwvc3ZnPg==">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
