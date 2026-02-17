@@ -338,6 +338,3 @@ const NavButton: React.FC<NavButtonProps> = ({ active, onClick, icon, label, cla
 );
 
 export default App;
-);
-
-export default App;
