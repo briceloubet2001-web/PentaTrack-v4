@@ -5,7 +5,6 @@ import {
   ChartBarIcon,
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
-  ClockIcon,
   ArrowPathIcon,
   BellAlertIcon
 } from '@heroicons/react/24/outline';
@@ -312,7 +311,6 @@ const App: React.FC = () => {
             <PlusIcon className="w-8 h-8" />
           </button>
         )}
-        <NavButton active={activeTab === 'add' && currentUser.role === 'coach'} onClick={() => {}} icon={<ClockIcon className="w-6 h-6" />} label="Historique" className={currentUser.role === 'athlete' ? 'hidden' : ''} />
         <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserCircleIcon className="w-6 h-6" />} label="Profil" />
       </nav>
     </div>
@@ -337,6 +335,9 @@ const NavButton: React.FC<NavButtonProps> = ({ active, onClick, icon, label, cla
     </div>
     <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
   </button>
+);
+
+export default App;
 );
 
 export default App;
