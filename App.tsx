@@ -6,7 +6,8 @@ import {
   UserCircleIcon,
   ArrowLeftOnRectangleIcon,
   ArrowPathIcon,
-  BellAlertIcon
+  BellAlertIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from './supabaseClient';
 import { User, Session, ClubInfo } from './types';
@@ -20,6 +21,16 @@ type Tab = 'home' | 'stats' | 'add' | 'profile';
 
 const ADMIN_EMAIL = 'briceloubet2001@gmail.com';
 
+// Interface pour l'événement d'installation PWA
+interface BeforeInstallPromptEvent extends Event {
+  readonly platforms: string[];
+  readonly userChoice: Promise<{
+    outcome: 'accepted' | 'dismissed';
+    platform: string;
+  }>;
+  prompt(): Promise<void>;
+}
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -30,6 +41,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   
   // Suivi de la dernière sauvegarde
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(localStorage.getItem('penta_last_backup'));
@@ -121,8 +133,28 @@ const App: React.FC = () => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Gestionnaire pour l'installation PWA
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, [loadUserData]);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleToggleUserStatus = async (userId: string, active: boolean) => {
     const { error } = await supabase
@@ -257,9 +289,21 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* Bouton d'installation PWA si disponible */}
+            {deferredPrompt && (
+              <button 
+                onClick={handleInstallApp}
+                className="w-full flex items-center justify-center gap-3 bg-club-primary text-white font-bold py-4 rounded-2xl hover:opacity-90 transition-all shadow-lg animate-bounce"
+                style={{ backgroundColor: 'var(--club-primary)' }}
+              >
+                <ArrowDownTrayIcon className="w-6 h-6" />
+                Installer l'application
+              </button>
+            )}
+
             {/* Rappel de sauvegarde pour Brice uniquement */}
             {currentUser.email === ADMIN_EMAIL && needsBackup && (
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 animate-bounce">
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3">
                 <BellAlertIcon className="w-6 h-6 text-amber-600 shrink-0" />
                 <div>
                   <h4 className="font-bold text-amber-900 text-sm">Action Requise</h4>
@@ -286,7 +330,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.3</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.4</p>
             </div>
           </div>
         );
@@ -296,10 +340,10 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-24 max-w-2xl mx-auto px-4 pt-8">
+    <div className="min-h-screen pb-24 px-4 pt-8 md:max-w-5xl md:mx-auto">
       {renderContent()}
 
-      <nav className="fixed bottom-6 left-4 right-4 bg-slate-900/95 backdrop-blur-md rounded-3xl p-2 shadow-2xl flex justify-around items-center border border-white/10 z-50 max-w-2xl mx-auto">
+      <nav className="fixed bottom-6 left-4 right-4 bg-slate-900/95 backdrop-blur-md rounded-3xl p-2 shadow-2xl flex justify-around items-center border border-white/10 z-50 md:max-w-xl md:mx-auto md:left-1/2 md:-translate-x-1/2">
         <NavButton active={activeTab === 'home'} onClick={() => { setActiveTab('home'); setEditingSession(null); }} icon={<HomeIcon className="w-6 h-6" />} label="Accueil" />
         <NavButton active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} icon={<ChartBarIcon className="w-6 h-6" />} label="Stats" />
         {currentUser.role === 'athlete' && (
