@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import JSZip from 'jszip';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@^2.45.4';
+import JSZip from 'https://esm.sh/jszip@^3.10.1';
 import { 
   ArrowDownTrayIcon, 
   CircleStackIcon, 
