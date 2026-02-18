@@ -10,7 +10,6 @@ export type Discipline =
   | 'Médical';
 
 export type UserRole = 'athlete' | 'coach';
-// On passe en string pour accepter n'importe quel club venant de la DB
 export type Club = string;
 
 export interface ClubInfo {
@@ -48,3 +47,4 @@ export interface Session {
 }
 
 export type StatsPeriod = 'day' | 'week' | 'month' | 'year' | 'custom';
+export type Tab = 'home' | 'stats' | 'analyse' | 'add' | 'profile';
