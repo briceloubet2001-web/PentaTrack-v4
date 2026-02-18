@@ -9,7 +9,6 @@ import {
   CalendarDaysIcon,
   ClockIcon,
   MapPinIcon,
-  TagIcon,
   XMarkIcon,
   ChatBubbleLeftEllipsisIcon
 } from '@heroicons/react/24/outline';
@@ -34,7 +33,6 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
   
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<{ discipline: Discipline, week: number } | null>(null);
-  const matrixContainerRef = useRef<HTMLDivElement>(null);
 
   const clubAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active),
@@ -56,11 +54,10 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
     return d.toLocaleDateString('fr-FR', { month: 'short' });
   };
 
-  // Dimensions optimisées pour voir l'année complète
-  const COL_WIDTH = 22; // Largeur d'une semaine réduite
-  const LABEL_WIDTH = 140; // Largeur libellé réduite
+  // Dimensions optimisées
+  const COL_WIDTH = 22; 
+  const LABEL_WIDTH = 130; 
 
-  // Calcul des blocs de mois pour le header
   const monthBlocks = useMemo(() => {
     const blocks: { name: string, startWeek: number, span: number }[] = [];
     let currentMonth = "";
@@ -213,7 +210,7 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
         </div>
       ) : (
         <>
-          {/* Bandeau Récapitulatif Dynamique - Plus compact */}
+          {/* Bandeau Récapitulatif Dynamique */}
           <section className="grid grid-cols-7 gap-3">
             <SummaryCard icon="🏊" label="Natation" value={`${weeklySummary.natationKm.toFixed(1)}`} unit="km" />
             <SummaryCard icon="🏃" label="Course" value={`${weeklySummary.courseKm.toFixed(1)}`} unit="km" />
@@ -231,122 +228,124 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
             />
           </section>
 
-          {/* Main Matrix Container - Densifié pour tout voir sans scroll */}
-          <div 
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col relative group/matrix"
-            ref={matrixContainerRef}
-          >
-            {/* Header des Mois & Semaines - Sticky */}
-            <div className="flex flex-col sticky top-0 z-30 bg-slate-900 text-white border-b border-white/20">
-              {/* Ligne des Mois */}
-              <div className="flex border-b border-white/10">
-                <div className="shrink-0 p-2 border-r border-white/10 flex items-center gap-1.5 bg-slate-900" style={{ width: `${LABEL_WIDTH}px` }}>
-                  <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Calendrier</span>
-                </div>
-                <div className="flex-1 flex">
-                  {monthBlocks.map((block, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`h-7 flex items-center justify-center border-r border-white/10 text-[9px] font-black uppercase tracking-widest bg-slate-800/40`}
-                      style={{ width: `${block.span * COL_WIDTH}px` }}
-                    >
-                      {block.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Ligne des Semaines */}
-              <div className="flex">
-                <div className="shrink-0 border-r border-white/10 bg-slate-900" style={{ width: `${LABEL_WIDTH}px` }} />
-                <div className="flex-1 flex overflow-x-hidden">
-                  {weeks.map(w => (
-                    <div 
-                      key={w} 
-                      className={`shrink-0 border-r border-white/5 h-6 flex items-center justify-center transition-colors cursor-pointer text-[9px] font-bold ${activeWeek === w ? 'bg-club-primary text-white' : 'hover:bg-white/10 text-slate-500'}`}
-                      style={{ width: `${COL_WIDTH}px` }}
-                      onMouseEnter={() => setHoveredWeek(w)}
-                      onMouseLeave={() => setHoveredWeek(null)}
-                      onClick={() => setActiveWeek(w)}
-                    >
-                      {w}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Matrix Body */}
-            <div className="relative overflow-x-auto no-scrollbar">
-              {/* Sync Cursor (Vertical Line) - Corrigé */}
-              {(hoveredWeek || activeWeek) && (
-                <div 
-                  className={`absolute top-0 bottom-0 pointer-events-none transition-all duration-75 z-10 ${hoveredWeek ? 'bg-slate-400/5' : 'bg-club-primary/5 border-x border-club-primary/10'}`}
-                  style={{ 
-                    left: `${LABEL_WIDTH + ((hoveredWeek || activeWeek) - 1) * COL_WIDTH}px`,
-                    width: `${COL_WIDTH}px` 
-                  }}
-                />
-              )}
-
-              {/* Lignes de disciplines - Hauteur h-20 (80px) */}
-              {(Object.keys(DISCIPLINE_CONFIG) as Discipline[])
-                .filter(d => d !== 'Médical')
-                .map(disc => (
-                <div key={disc} className="flex border-b border-slate-50 transition-colors relative z-0 h-20 hover:bg-slate-50/20">
-                  <div className="shrink-0 p-3 border-r border-slate-100 flex items-center gap-2 bg-white z-20 sticky left-0" style={{ width: `${LABEL_WIDTH}px` }}>
-                    <span className="text-xl shrink-0">{DISCIPLINE_CONFIG[disc].icon}</span>
-                    <span className="text-[10px] font-bold text-slate-600 truncate uppercase tracking-tighter">{disc}</span>
+          {/* Main Matrix Container - Scroll unique */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto relative no-scrollbar">
+            <div className="min-w-max">
+              
+              {/* Header Temporel : Sticky Top + Sync horizontal par défaut car dans le flux */}
+              <div className="sticky top-0 z-40 bg-slate-900 text-white shadow-lg border-b border-white/20">
+                {/* Ligne des Mois */}
+                <div className="flex">
+                  <div className="sticky left-0 z-50 bg-slate-900 border-r border-white/10 px-3 py-2 flex items-center gap-1.5 shrink-0" style={{ width: `${LABEL_WIDTH}px` }}>
+                    <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Calendrier</span>
                   </div>
-                  <div className="flex-1 flex items-end bg-white/40">
-                    {weeks.map(w => {
-                      const stats = matrixData[disc][w];
-                      const val = (disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') ? stats.km : stats.count;
-                      const height = (val / maxValuesByDisc[disc]) * 100;
-                      const isSelected = activeWeek === w;
-                      
-                      return (
-                        <div 
-                          key={w} 
-                          className={`shrink-0 h-full flex items-end justify-center border-r border-slate-50 transition-all cursor-pointer relative group/bar ${isSelected ? 'bg-slate-50/60' : 'hover:bg-slate-50/30'}`}
-                          style={{ width: `${COL_WIDTH}px` }}
-                          onMouseEnter={() => setHoveredWeek(w)}
-                          onMouseLeave={() => setHoveredWeek(null)}
-                          onClick={() => handleBarClick(disc, w)}
-                        >
-                          {val > 0 && (
-                            <div 
-                              className="w-[16px] mx-auto rounded-t-sm transition-all relative flex flex-col justify-end items-center group-hover/bar:scale-x-110"
-                              style={{ 
-                                height: `${Math.max(height, 20)}%`, 
-                                backgroundColor: DISCIPLINE_CONFIG[disc].hexColor,
-                                opacity: isSelected ? 1 : 0.8
-                              }}
-                            >
-                              {/* Valeurs sur les barres - text-8px bold */}
-                              <span className="text-[8px] font-black text-white mb-1 drop-shadow-sm pointer-events-none">
-                                {(disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') 
-                                  ? (stats.km >= 10 ? stats.km.toFixed(0) : stats.km.toFixed(1))
-                                  : stats.count}
-                              </span>
+                  <div className="flex">
+                    {monthBlocks.map((block, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`h-7 flex items-center justify-center border-r border-white/10 text-[9px] font-black uppercase tracking-widest bg-slate-800/40 shrink-0`}
+                        style={{ width: `${block.span * COL_WIDTH}px` }}
+                      >
+                        {block.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Ligne des Semaines */}
+                <div className="flex">
+                  <div className="sticky left-0 z-50 bg-slate-900 border-r border-white/10 shrink-0" style={{ width: `${LABEL_WIDTH}px` }} />
+                  <div className="flex">
+                    {weeks.map(w => (
+                      <div 
+                        key={w} 
+                        className={`shrink-0 border-r border-white/5 h-6 flex items-center justify-center transition-colors cursor-pointer text-[9px] font-bold ${activeWeek === w ? 'bg-club-primary text-white' : 'hover:bg-white/10 text-slate-500'}`}
+                        style={{ width: `${COL_WIDTH}px` }}
+                        onMouseEnter={() => setHoveredWeek(w)}
+                        onMouseLeave={() => setHoveredWeek(null)}
+                        onClick={() => setActiveWeek(w)}
+                      >
+                        {w}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Matrix Body */}
+              <div className="relative z-0">
+                {/* Sync Cursor (Vertical Line) */}
+                {(hoveredWeek || activeWeek) && (
+                  <div 
+                    className={`absolute top-0 bottom-0 pointer-events-none transition-all duration-75 z-10 ${hoveredWeek ? 'bg-slate-400/5' : 'bg-club-primary/5 border-x border-club-primary/10'}`}
+                    style={{ 
+                      left: `${LABEL_WIDTH + ((hoveredWeek || activeWeek) - 1) * COL_WIDTH}px`,
+                      width: `${COL_WIDTH}px` 
+                    }}
+                  />
+                )}
+
+                {/* Lignes de disciplines */}
+                {(Object.keys(DISCIPLINE_CONFIG) as Discipline[])
+                  .filter(d => d !== 'Médical')
+                  .map(disc => (
+                  <div key={disc} className="flex border-b border-slate-50 transition-colors h-20 hover:bg-slate-50/20 group/row">
+                    <div 
+                      className="sticky left-0 z-20 bg-white border-r border-slate-100 px-3 py-3 flex items-center gap-2 shadow-[4px_0_8px_rgba(0,0,0,0.02)] transition-colors group-hover/row:bg-slate-50 shrink-0" 
+                      style={{ width: `${LABEL_WIDTH}px` }}
+                    >
+                      <span className="text-xl shrink-0">{DISCIPLINE_CONFIG[disc].icon}</span>
+                      <span className="text-[10px] font-bold text-slate-600 truncate uppercase tracking-tighter">{disc}</span>
+                    </div>
+                    <div className="flex items-end bg-white/40">
+                      {weeks.map(w => {
+                        const stats = matrixData[disc][w];
+                        const val = (disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') ? stats.km : stats.count;
+                        const height = (val / maxValuesByDisc[disc]) * 100;
+                        const isSelected = activeWeek === w;
+                        
+                        return (
+                          <div 
+                            key={w} 
+                            className={`shrink-0 h-full flex items-end justify-center border-r border-slate-50 transition-all cursor-pointer relative group/bar ${isSelected ? 'bg-slate-50/60' : 'hover:bg-slate-50/30'}`}
+                            style={{ width: `${COL_WIDTH}px` }}
+                            onMouseEnter={() => setHoveredWeek(w)}
+                            onMouseLeave={() => setHoveredWeek(null)}
+                            onClick={() => handleBarClick(disc, w)}
+                          >
+                            {val > 0 && (
+                              <div 
+                                className="w-[16px] mx-auto rounded-t-sm transition-all relative flex flex-col justify-end items-center group-hover/bar:scale-x-110"
+                                style={{ 
+                                  height: `${Math.max(height, 20)}%`, 
+                                  backgroundColor: DISCIPLINE_CONFIG[disc].hexColor,
+                                  opacity: isSelected ? 1 : 0.8
+                                }}
+                              >
+                                <span className="text-[8px] font-black text-white mb-1 drop-shadow-sm pointer-events-none">
+                                  {(disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') 
+                                    ? (stats.km >= 10 ? stats.km.toFixed(0) : stats.km.toFixed(1))
+                                    : stats.count}
+                                </span>
+                              </div>
+                            )}
+                            
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/bar:block z-40 pointer-events-none">
+                              <div className="bg-slate-900 text-white text-[9px] p-2 rounded-lg shadow-2xl border border-white/10 whitespace-nowrap font-bold">
+                                {disc} - S{w}<br/>
+                                {stats.km > 0 && <span>Distance: {stats.km.toFixed(1)}km<br/></span>}
+                                Sessions: {stats.count}
+                              </div>
+                              <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 mx-auto -mt-0.5" />
                             </div>
-                          )}
-                          
-                          {/* Tooltip optimisé */}
-                          <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/bar:block z-40 pointer-events-none">
-                            <div className="bg-slate-900 text-white text-[9px] p-2 rounded-lg shadow-2xl border border-white/10 whitespace-nowrap font-bold">
-                              {disc} - S{w}<br/>
-                              {stats.km > 0 && <span>Distance: {stats.km.toFixed(1)}km<br/></span>}
-                              Sessions: {stats.count}
-                            </div>
-                            <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 mx-auto -mt-0.5" />
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
           
@@ -356,13 +355,13 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-slate-200"></div> Autres semaines</div>
             </div>
             <div className="text-[8px] font-bold text-slate-300 uppercase tracking-widest italic">
-              * Cliquez sur une barre pour voir le détail des séances
+              * Faites défiler vers la droite pour voir l'année complète
             </div>
           </footer>
         </>
       )}
 
-      {/* Side Drawer (Effet Loupe) */}
+      {/* Side Drawer */}
       {drawerOpen && drawerData && (
         <div className="fixed inset-0 z-[100] flex justify-end">
           <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in" onClick={() => setDrawerOpen(false)} />
