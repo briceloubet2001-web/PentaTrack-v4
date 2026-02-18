@@ -30,6 +30,7 @@ export interface User {
   club: Club;
   role: UserRole;
   active: boolean;
+  password_last_changed_at: string;
 }
 
 export interface Session {
