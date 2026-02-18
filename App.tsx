@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   PlusIcon, 
@@ -16,6 +17,7 @@ import Dashboard from './components/Dashboard';
 import SessionForm from './components/SessionForm';
 import Stats from './components/Stats';
 import BackupTool from './components/BackupTool';
+import StressTestTool from './components/StressTestTool';
 
 type Tab = 'home' | 'stats' | 'add' | 'profile';
 
@@ -267,7 +269,7 @@ const App: React.FC = () => {
         );
       case 'profile':
         return (
-          <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto">
+          <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto pb-12">
             <header>
               <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
               <p className="text-slate-500">Gère tes informations personnelles.</p>
@@ -331,6 +333,14 @@ const App: React.FC = () => {
               <BackupTool onBackupComplete={handleBackupDone} />
             )}
 
+            {/* Accès au StressTestTool pour Brice uniquement */}
+            {currentUser.email === ADMIN_EMAIL && (
+              <StressTestTool 
+                currentUserId={currentUser.id} 
+                onRefresh={() => fetchClubUsers(currentUser.club)} 
+              />
+            )}
+
             <div className="space-y-3">
               <button 
                 onClick={handleLogout}
@@ -342,7 +352,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.5</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.6 (Stress Ready)</p>
             </div>
           </div>
         );
