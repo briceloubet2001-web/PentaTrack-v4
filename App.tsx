@@ -8,7 +8,8 @@ import {
   ArrowLeftOnRectangleIcon,
   ArrowPathIcon,
   BellAlertIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  KeyIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from './supabaseClient';
 import { User, Session, ClubInfo } from './types';
@@ -17,6 +18,7 @@ import Dashboard from './components/Dashboard';
 import SessionForm from './components/SessionForm';
 import Stats from './components/Stats';
 import BackupTool from './components/BackupTool';
+import PasswordChangeForm from './components/PasswordChangeForm';
 
 type Tab = 'home' | 'stats' | 'add' | 'profile';
 
@@ -45,6 +47,10 @@ const App: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   
+  // États de sécurité
+  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [isChangingPasswordManual, setIsChangingPasswordManual] = useState(false);
+  
   // Suivi de la dernière sauvegarde
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(localStorage.getItem('penta_last_backup'));
 
@@ -54,7 +60,6 @@ const App: React.FC = () => {
   };
 
   const fetchSessions = useCallback(async (userId: string, role: string, club: string) => {
-    // Retour à la limite standard de 1 000 sessions pour la stabilité
     let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(1000);
     
     if (role === 'athlete') {
@@ -97,6 +102,14 @@ const App: React.FC = () => {
       return;
     }
 
+    // --- VERIFICATION EXPIRATION MOT DE PASSE (30 JOURS) ---
+    const lastChanged = profile.password_last_changed_at ? new Date(profile.password_last_changed_at).getTime() : 0;
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+    
+    if (Date.now() - lastChanged > thirtyDaysInMs) {
+      setMustChangePassword(true);
+    }
+
     setCurrentUser(profile);
     
     const { data: clubData } = await supabase
@@ -134,6 +147,7 @@ const App: React.FC = () => {
         setSessions([]);
         setAllUsers([]);
         setSelectedAthleteId(null);
+        setMustChangePassword(false);
       }
     });
 
@@ -229,6 +243,25 @@ const App: React.FC = () => {
     );
   }
 
+  // --- ECRAN FORCÉ DE MISE À JOUR DU MOT DE PASSE ---
+  if (currentUser && mustChangePassword) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <PasswordChangeForm 
+          userId={currentUser.id}
+          onSuccess={() => {
+            setMustChangePassword(false);
+            supabase.auth.getSession().then(({ data: { session } }) => {
+               if (session) loadUserData(session.user);
+            });
+          }}
+          isForced={true}
+          primaryColor={currentClubInfo?.primary_color}
+        />
+      </div>
+    );
+  }
+
   if (!currentUser || (currentUser.role === 'athlete' && !currentUser.active)) {
     return (
       <Login 
@@ -302,6 +335,33 @@ const App: React.FC = () => {
               </div>
             </div>
 
+            {/* SECTION SÉCURITÉ */}
+            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-slate-50 text-slate-500 rounded-xl">
+                  <KeyIcon className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-slate-900">Sécurité</h3>
+              </div>
+              
+              {isChangingPasswordManual ? (
+                <PasswordChangeForm 
+                  userId={currentUser.id}
+                  onSuccess={() => setIsChangingPasswordManual(false)}
+                  onCancel={() => setIsChangingPasswordManual(false)}
+                  primaryColor={currentClubInfo?.primary_color}
+                />
+              ) : (
+                <button 
+                  onClick={() => setIsChangingPasswordManual(true)}
+                  className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl hover:bg-slate-100 transition-all border border-slate-100"
+                >
+                  <KeyIcon className="w-5 h-5" />
+                  Changer mon mot de passe
+                </button>
+              )}
+            </div>
+
             {deferredPrompt && (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-3xl space-y-3">
                 <div className="flex gap-3">
@@ -350,7 +410,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.6</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.7</p>
             </div>
           </div>
         );
