@@ -296,6 +296,7 @@ const App: React.FC = () => {
           <Stats 
             sessions={sessions} 
             currentUser={currentUser} 
+            currentClubInfo={currentClubInfo}
             allUsers={allUsers} 
             selectedAthleteId={selectedAthleteId || undefined} 
           />
@@ -304,6 +305,7 @@ const App: React.FC = () => {
         return (
           <SessionForm 
             currentUser={currentUser} 
+            currentClubInfo={currentClubInfo}
             initialSession={editingSession || undefined}
             onSave={handleSaveSession}
             onCancel={() => { setEditingSession(null); setActiveTab('home'); }}
@@ -312,9 +314,14 @@ const App: React.FC = () => {
       case 'profile':
         return (
           <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto pb-12">
-            <header>
-              <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
-              <p className="text-slate-500">Gère tes informations personnelles.</p>
+            <header className="flex items-center gap-4">
+              {currentClubInfo?.logo_url && (
+                <img src={currentClubInfo.logo_url} alt="Logo Club" className="h-16 w-16 object-contain" />
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
+                <p className="text-slate-500">Gère tes informations personnelles.</p>
+              </div>
             </header>
             
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -410,7 +417,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.7</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.8</p>
             </div>
           </div>
         );
