@@ -1,17 +1,18 @@
 
 import React, { useState } from 'react';
-import { Discipline, Session, User } from '../types';
+import { Discipline, Session, User, ClubInfo } from '../types';
 import { DISCIPLINE_CONFIG } from '../constants';
 import { XMarkIcon, CheckIcon } from '@heroicons/react/24/solid';
 
 interface SessionFormProps {
   currentUser: User;
+  currentClubInfo: ClubInfo | null;
   initialSession?: Session;
   onSave: (session: any) => void;
   onCancel: () => void;
 }
 
-const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, onSave, onCancel }) => {
+const SessionForm: React.FC<SessionFormProps> = ({ currentUser, currentClubInfo, initialSession, onSave, onCancel }) => {
   const [discipline, setDiscipline] = useState<Discipline | null>(initialSession?.discipline || null);
   const [date, setDate] = useState(initialSession?.date || new Date().toISOString().split('T')[0]);
   const [duration, setDuration] = useState(initialSession?.duration_minutes.toString() || '');
@@ -50,9 +51,14 @@ const SessionForm: React.FC<SessionFormProps> = ({ currentUser, initialSession, 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       <header className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">{initialSession ? 'Modifier la séance' : 'Nouvelle séance'}</h1>
-          <p className="text-slate-500">{initialSession ? 'Mets à jour tes informations.' : 'Enregistre ton entraînement du jour.'}</p>
+        <div className="flex items-center gap-4">
+          {currentClubInfo?.logo_url && (
+            <img src={currentClubInfo.logo_url} alt="Logo Club" className="h-16 w-16 object-contain" />
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">{initialSession ? 'Modifier la séance' : 'Nouvelle séance'}</h1>
+            <p className="text-slate-500">{initialSession ? 'Mets à jour tes informations.' : 'Enregistre ton entraînement du jour.'}</p>
+          </div>
         </div>
         <button onClick={onCancel} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
           <XMarkIcon className="w-6 h-6" />
