@@ -41,9 +41,11 @@ const App: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetchingAthlete, setIsFetchingAthlete] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   
   // Suivi de la dernière sauvegarde
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(localStorage.getItem('penta_last_backup'));
@@ -54,7 +56,8 @@ const App: React.FC = () => {
   };
 
   const fetchSessions = useCallback(async (userId: string, role: string, club: string) => {
-    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false });
+    // Augmentation de la limite à 10 000 sessions récentes pour le club
+    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(10000);
     
     if (role === 'athlete') {
       query = query.eq('user_id', userId);
@@ -68,6 +71,27 @@ const App: React.FC = () => {
 
     const { data, error } = await query;
     if (!error && data) setSessions(data);
+  }, []);
+
+  // Fonction de chargement ciblé pour un athlète spécifique
+  const fetchFocusedAthleteSessions = useCallback(async (athleteId: string) => {
+    setIsFetchingAthlete(true);
+    const { data, error } = await supabase
+      .from('training_sessions')
+      .select('*')
+      .eq('user_id', athleteId)
+      .order('date', { ascending: false })
+      .limit(10000); // 10 000 sessions pour cet athlète uniquement
+    
+    if (!error && data) {
+      // On fusionne avec les sessions existantes pour ne pas perdre les données du club,
+      // tout en s'assurant que les sessions de l'athlète ciblé sont complètes
+      setSessions(prev => {
+        const filtered = prev.filter(s => s.user_id !== athleteId);
+        return [...data, ...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      });
+    }
+    setIsFetchingAthlete(false);
   }, []);
 
   const fetchClubUsers = useCallback(async (club: string) => {
@@ -132,12 +156,12 @@ const App: React.FC = () => {
         setCurrentClubInfo(null);
         setSessions([]);
         setAllUsers([]);
+        setSelectedAthleteId(null);
       }
     });
 
     // Écouter l'événement d'installation PWA
     const handleBeforeInstallPrompt = (e: any) => {
-      console.log('Capture de beforeinstallprompt');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
@@ -154,7 +178,6 @@ const App: React.FC = () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`Résultat de l'installation: ${outcome}`);
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
     }
@@ -252,12 +275,25 @@ const App: React.FC = () => {
             onEdit={(s) => { setEditingSession(s); setActiveTab('add'); }}
             onToggleUserStatus={handleToggleUserStatus}
             onRejectUser={handleRejectUser}
-            onViewStats={(athleteId) => { setActiveTab('stats'); }}
+            onViewStats={(athleteId) => { setSelectedAthleteId(athleteId); setActiveTab('stats'); }}
             onRefreshUsers={() => fetchClubUsers(currentUser.club)}
+            onFocusAthlete={fetchFocusedAthleteSessions}
+            isFetchingAthlete={isFetchingAthlete}
+            selectedAthleteId={selectedAthleteId}
+            onSelectAthlete={setSelectedAthleteId}
           />
         );
       case 'stats':
-        return <Stats sessions={sessions} currentUser={currentUser} allUsers={allUsers} />;
+        return (
+          <Stats 
+            sessions={sessions} 
+            currentUser={currentUser} 
+            allUsers={allUsers} 
+            selectedAthleteId={selectedAthleteId || undefined} 
+            onFocusAthlete={fetchFocusedAthleteSessions}
+            isFetchingAthlete={isFetchingAthlete}
+          />
+        );
       case 'add':
         return (
           <SessionForm 
@@ -293,7 +329,6 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Bouton d'installation PWA conditionnel */}
             {deferredPrompt && (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-3xl space-y-3">
                 <div className="flex gap-3">
@@ -315,7 +350,6 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* Rappel de sauvegarde pour Brice uniquement */}
             {currentUser.email === ADMIN_EMAIL && needsBackup && (
               <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3">
                 <BellAlertIcon className="w-6 h-6 text-amber-600 shrink-0" />
@@ -328,12 +362,10 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* Accès restreint au BackupTool */}
             {currentUser.email === ADMIN_EMAIL && (
               <BackupTool onBackupComplete={handleBackupDone} />
             )}
 
-            {/* Accès au StressTestTool pour Brice uniquement */}
             {currentUser.email === ADMIN_EMAIL && (
               <StressTestTool 
                 currentUserId={currentUser.id} 
@@ -352,7 +384,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.6 (Stress Ready)</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.7 (Scale Pro)</p>
             </div>
           </div>
         );
