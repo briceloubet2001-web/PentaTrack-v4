@@ -17,7 +17,8 @@ import {
   ChevronLeftIcon,
   ChatBubbleLeftEllipsisIcon,
   ChevronDownIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 
 interface DashboardProps {
@@ -31,6 +32,10 @@ interface DashboardProps {
   onRejectUser?: (userId: string) => void;
   onViewStats?: (athleteId: string) => void;
   onRefreshUsers?: () => void;
+  onFocusAthlete?: (athleteId: string) => void;
+  isFetchingAthlete?: boolean;
+  selectedAthleteId?: string | null;
+  onSelectAthlete?: (id: string | null) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ 
@@ -43,12 +48,19 @@ const Dashboard: React.FC<DashboardProps> = ({
   onToggleUserStatus, 
   onRejectUser,
   onViewStats,
-  onRefreshUsers
+  onRefreshUsers,
+  onFocusAthlete,
+  isFetchingAthlete = false,
+  selectedAthleteId = null,
+  onSelectAthlete
 }) => {
-  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
-
   const targetId = currentUser.role === 'coach' ? selectedAthleteId : currentUser.id;
   const isViewingMirror = currentUser.role === 'coach' && selectedAthleteId !== null;
+
+  const handleSelectAthlete = (id: string) => {
+    onSelectAthlete?.(id);
+    onFocusAthlete?.(id);
+  };
 
   const targetUser = useMemo(() => {
     if (!targetId) return null;
@@ -177,7 +189,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 return (
                   <div 
                     key={u.id} 
-                    onClick={() => setSelectedAthleteId(u.id)}
+                    onClick={() => handleSelectAthlete(u.id)}
                     className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-club-primary transition-all cursor-pointer group"
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -190,7 +202,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 group-hover:text-club-primary transition-colors">{u.name}</div>
-                          <div className="text-xs text-slate-400">{userSessions.length} sessions au total</div>
+                          <div className="text-xs text-slate-400 font-medium">
+                            {userSessions.length >= 1000 ? "+1000" : userSessions.length} sessions
+                          </div>
                         </div>
                       </div>
                       <button 
@@ -236,7 +250,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex flex-col gap-0.5">
             {isViewingMirror && (
               <button 
-                onClick={() => setSelectedAthleteId(null)}
+                onClick={() => onSelectAthlete?.(null)}
                 className="flex items-center gap-1 text-club-primary text-sm font-bold hover:underline mb-1"
               >
                 <ChevronLeftIcon className="w-4 h-4" /> Retour au club
@@ -260,6 +274,15 @@ const Dashboard: React.FC<DashboardProps> = ({
           </button>
         )}
       </header>
+
+      {isFetchingAthlete && isViewingMirror && (
+        <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
+          <SparklesIcon className="w-6 h-6 text-indigo-500" />
+          <div className="text-xs font-bold text-indigo-700 uppercase tracking-wider">
+            Chargement de l'historique complet... ({targetSessions.length} sessions chargées)
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard 
@@ -297,14 +320,21 @@ const Dashboard: React.FC<DashboardProps> = ({
       </section>
 
       <section>
-        <h2 className="text-xl font-bold mb-4">Dernières sessions</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Dernières sessions</h2>
+          {isViewingMirror && (
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+              {targetSessions.length} sessions au total
+            </span>
+          )}
+        </div>
         <div className="space-y-3">
           {targetSessions.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border-2 border-dashed border-slate-200 text-slate-400">
               Aucune session enregistrée.
             </div>
           ) : (
-            targetSessions.slice(0, 10).map(s => (
+            targetSessions.slice(0, 20).map(s => (
               <SessionItem 
                 key={s.id} 
                 session={s} 
@@ -313,6 +343,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                 isReadOnly={isViewingMirror}
               />
             ))
+          )}
+          {targetSessions.length > 20 && (
+             <p className="text-center text-[10px] text-slate-400 uppercase font-bold tracking-widest pt-4">
+               Aperçu limité aux 20 dernières sessions. Utilisez l'onglet Stats pour l'historique complet.
+             </p>
           )}
         </div>
       </section>
