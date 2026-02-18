@@ -17,7 +17,6 @@ import Dashboard from './components/Dashboard';
 import SessionForm from './components/SessionForm';
 import Stats from './components/Stats';
 import BackupTool from './components/BackupTool';
-import StressTestTool from './components/StressTestTool';
 
 type Tab = 'home' | 'stats' | 'add' | 'profile';
 
@@ -41,7 +40,6 @@ const App: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isFetchingAthlete, setIsFetchingAthlete] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -56,8 +54,8 @@ const App: React.FC = () => {
   };
 
   const fetchSessions = useCallback(async (userId: string, role: string, club: string) => {
-    // Augmentation de la limite à 10 000 sessions récentes pour le club
-    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(10000);
+    // Retour à la limite standard de 1 000 sessions pour la stabilité
+    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(1000);
     
     if (role === 'athlete') {
       query = query.eq('user_id', userId);
@@ -71,27 +69,6 @@ const App: React.FC = () => {
 
     const { data, error } = await query;
     if (!error && data) setSessions(data);
-  }, []);
-
-  // Fonction de chargement ciblé pour un athlète spécifique
-  const fetchFocusedAthleteSessions = useCallback(async (athleteId: string) => {
-    setIsFetchingAthlete(true);
-    const { data, error } = await supabase
-      .from('training_sessions')
-      .select('*')
-      .eq('user_id', athleteId)
-      .order('date', { ascending: false })
-      .limit(10000); // 10 000 sessions pour cet athlète uniquement
-    
-    if (!error && data) {
-      // On fusionne avec les sessions existantes pour ne pas perdre les données du club,
-      // tout en s'assurant que les sessions de l'athlète ciblé sont complètes
-      setSessions(prev => {
-        const filtered = prev.filter(s => s.user_id !== athleteId);
-        return [...data, ...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      });
-    }
-    setIsFetchingAthlete(false);
   }, []);
 
   const fetchClubUsers = useCallback(async (club: string) => {
@@ -277,8 +254,6 @@ const App: React.FC = () => {
             onRejectUser={handleRejectUser}
             onViewStats={(athleteId) => { setSelectedAthleteId(athleteId); setActiveTab('stats'); }}
             onRefreshUsers={() => fetchClubUsers(currentUser.club)}
-            onFocusAthlete={fetchFocusedAthleteSessions}
-            isFetchingAthlete={isFetchingAthlete}
             selectedAthleteId={selectedAthleteId}
             onSelectAthlete={setSelectedAthleteId}
           />
@@ -290,8 +265,6 @@ const App: React.FC = () => {
             currentUser={currentUser} 
             allUsers={allUsers} 
             selectedAthleteId={selectedAthleteId || undefined} 
-            onFocusAthlete={fetchFocusedAthleteSessions}
-            isFetchingAthlete={isFetchingAthlete}
           />
         );
       case 'add':
@@ -366,13 +339,6 @@ const App: React.FC = () => {
               <BackupTool onBackupComplete={handleBackupDone} />
             )}
 
-            {currentUser.email === ADMIN_EMAIL && (
-              <StressTestTool 
-                currentUserId={currentUser.id} 
-                onRefresh={() => fetchClubUsers(currentUser.club)} 
-              />
-            )}
-
             <div className="space-y-3">
               <button 
                 onClick={handleLogout}
@@ -384,7 +350,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.7 (Scale Pro)</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.6</p>
             </div>
           </div>
         );
