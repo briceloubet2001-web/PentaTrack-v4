@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Session, StatsPeriod, Discipline, User } from '../types';
 import { DISCIPLINE_CONFIG } from '../constants';
 import { formatDuration } from '../utils';
-import { ChartBarIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import { 
   BarChart, 
   Bar, 
@@ -22,6 +22,8 @@ interface StatsProps {
   currentUser: User;
   allUsers?: User[];
   selectedAthleteId?: string;
+  onFocusAthlete?: (athleteId: string) => void;
+  isFetchingAthlete?: boolean;
 }
 
 interface DisciplineTotalStats {
@@ -30,7 +32,14 @@ interface DisciplineTotalStats {
   count: number;
 }
 
-const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], selectedAthleteId: initialAthleteId }) => {
+const Stats: React.FC<StatsProps> = ({ 
+  sessions, 
+  currentUser, 
+  allUsers = [], 
+  selectedAthleteId: initialAthleteId,
+  onFocusAthlete,
+  isFetchingAthlete = false
+}) => {
   const [period, setPeriod] = useState<StatsPeriod>('week');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [targetAthleteId, setTargetAthleteId] = useState<string | null>(initialAthleteId || (currentUser.role === 'athlete' ? currentUser.id : null));
@@ -40,6 +49,11 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
   const clubAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active),
   [allUsers, currentUser.club]);
+
+  const handleSelectAthlete = (id: string) => {
+    setTargetAthleteId(id);
+    onFocusAthlete?.(id);
+  };
 
   const periodBounds = useMemo(() => {
     const start = new Date(refDate);
@@ -237,7 +251,7 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
             {clubAthletes.map(u => (
               <button
                 key={u.id}
-                onClick={() => setTargetAthleteId(u.id)}
+                onClick={() => handleSelectAthlete(u.id)}
                 className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
                   targetAthleteId === u.id 
                     ? 'text-white shadow-md' 
@@ -250,6 +264,15 @@ const Stats: React.FC<StatsProps> = ({ sessions, currentUser, allUsers = [], sel
             ))}
           </div>
         </section>
+      )}
+
+      {isFetchingAthlete && (
+        <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl flex items-center gap-3 animate-pulse">
+          <SparklesIcon className="w-6 h-6 text-indigo-500" />
+          <div className="text-xs font-bold text-indigo-700 uppercase tracking-wider">
+            Chargement de l'historique complet pour les graphiques...
+          </div>
+        </div>
       )}
 
       {targetAthleteId ? (
