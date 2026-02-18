@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Session, StatsPeriod, Discipline, User } from '../types';
+import { Session, StatsPeriod, Discipline, User, ClubInfo } from '../types';
 import { DISCIPLINE_CONFIG } from '../constants';
 import { formatDuration } from '../utils';
 import { ChartBarIcon, ChevronLeftIcon, ChevronRightIcon, CalendarIcon } from '@heroicons/react/24/outline';
@@ -20,6 +20,7 @@ import {
 interface StatsProps {
   sessions: Session[];
   currentUser: User;
+  currentClubInfo: ClubInfo | null;
   allUsers?: User[];
   selectedAthleteId?: string;
 }
@@ -33,6 +34,7 @@ interface DisciplineTotalStats {
 const Stats: React.FC<StatsProps> = ({ 
   sessions, 
   currentUser, 
+  currentClubInfo,
   allUsers = [], 
   selectedAthleteId: initialAthleteId
 }) => {
@@ -230,13 +232,18 @@ const Stats: React.FC<StatsProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-      <header>
-        <h1 className="text-3xl font-bold text-slate-900">Statistiques</h1>
-        <p className="text-slate-500">
-          {currentUser.role === 'coach' 
-            ? (targetAthleteId ? `Consultation de : ${currentAthleteName}` : 'Sélectionnez un athlète') 
-            : 'Analyse de tes performances.'}
-        </p>
+      <header className="flex items-center gap-4">
+        {currentClubInfo?.logo_url && (
+          <img src={currentClubInfo.logo_url} alt="Logo Club" className="h-16 w-16 object-contain" />
+        )}
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Statistiques</h1>
+          <p className="text-slate-500">
+            {currentUser.role === 'coach' 
+              ? (targetAthleteId ? `Consultation de : ${currentAthleteName}` : 'Sélectionnez un athlète') 
+              : 'Analyse de tes performances.'}
+          </p>
+        </div>
       </header>
 
       {currentUser.role === 'coach' && (
