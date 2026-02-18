@@ -133,8 +133,9 @@ const App: React.FC = () => {
       }
     });
 
-    // Gestionnaire pour l'installation PWA
+    // Écouter l'événement d'installation PWA
     const handleBeforeInstallPrompt = (e: any) => {
+      console.log('Capture de beforeinstallprompt');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
@@ -151,6 +152,7 @@ const App: React.FC = () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    console.log(`Résultat de l'installation: ${outcome}`);
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
     }
@@ -265,7 +267,7 @@ const App: React.FC = () => {
         );
       case 'profile':
         return (
-          <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto">
             <header>
               <h1 className="text-3xl font-bold text-slate-900">Mon Profil</h1>
               <p className="text-slate-500">Gère tes informations personnelles.</p>
@@ -289,16 +291,26 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Bouton d'installation PWA si disponible */}
+            {/* Bouton d'installation PWA conditionnel */}
             {deferredPrompt && (
-              <button 
-                onClick={handleInstallApp}
-                className="w-full flex items-center justify-center gap-3 bg-club-primary text-white font-bold py-4 rounded-2xl hover:opacity-90 transition-all shadow-lg animate-bounce"
-                style={{ backgroundColor: 'var(--club-primary)' }}
-              >
-                <ArrowDownTrayIcon className="w-6 h-6" />
-                Installer l'application
-              </button>
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-3xl space-y-3">
+                <div className="flex gap-3">
+                  <ArrowDownTrayIcon className="w-6 h-6 text-amber-600 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-amber-900 text-sm">Application non installée</h4>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      Installe PentaTrack sur ton écran d'accueil pour un accès plus rapide et une meilleure expérience.
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleInstallApp}
+                  className="w-full bg-amber-500 text-white font-bold py-3 rounded-2xl hover:bg-amber-600 transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  Installer maintenant
+                </button>
+              </div>
             )}
 
             {/* Rappel de sauvegarde pour Brice uniquement */}
@@ -330,7 +342,7 @@ const App: React.FC = () => {
             </div>
             
             <div className="text-center pt-8 opacity-20">
-              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.4</p>
+              <p className="text-xs font-bold uppercase tracking-widest">PentaTrack v5.5</p>
             </div>
           </div>
         );
@@ -340,7 +352,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-24 px-4 pt-8 md:max-w-5xl md:mx-auto">
+    <div className="min-h-screen pb-32 px-4 pt-8 md:max-w-6xl md:mx-auto">
       {renderContent()}
 
       <nav className="fixed bottom-6 left-4 right-4 bg-slate-900/95 backdrop-blur-md rounded-3xl p-2 shadow-2xl flex justify-around items-center border border-white/10 z-50 md:max-w-xl md:mx-auto md:left-1/2 md:-translate-x-1/2">
