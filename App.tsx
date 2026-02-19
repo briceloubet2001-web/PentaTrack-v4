@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   PlusIcon, 
@@ -200,7 +199,12 @@ const App: React.FC = () => {
       {isDesktop && (
         <aside className="fixed left-0 top-0 bottom-0 w-64 bg-slate-900 p-6 flex flex-col gap-8 z-50">
           <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 bg-club-primary rounded-xl flex items-center justify-center text-white font-bold text-xl" style={{ backgroundColor: 'var(--club-primary)' }}>5</div>
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg border border-white/10"
+              style={{ background: 'radial-gradient(circle, #F8FAFC 0%, #CBD5E1 100%)' }}
+            >
+              <span style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))' }}>5</span>
+            </div>
             <span className="text-white font-bold text-xl tracking-tight">PentaTrack</span>
           </div>
           <nav className="flex-1 space-y-2">
@@ -232,7 +236,7 @@ const App: React.FC = () => {
           {currentUser.role === 'athlete' ? (
             <button onClick={() => { setEditingSession(null); setActiveTab('add'); }} className="w-14 h-14 -mt-8 bg-club-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-slate-900 transition-transform active:scale-90" style={{ backgroundColor: 'var(--club-primary)' }}><PlusIcon className="w-8 h-8" /></button>
           ) : (
-            <NavButton active={activeTab === 'analyse'} onClick={() => setActiveTab('analyse')} icon={<PresentationChartLineIcon className="w-6 h-6" />} label="Analyse" />
+            <NavButton active={activeTab === 'analyse'} onClick={() => setActiveTab('analyse'} icon={<PresentationChartLineIcon className="w-6 h-6" />} label="Analyse" />
           )}
           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserCircleIcon className="w-6 h-6" />} label="Profil" />
         </nav>
