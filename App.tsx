@@ -200,10 +200,10 @@ const App: React.FC = () => {
         <aside className="fixed left-0 top-0 bottom-0 w-64 bg-slate-900 p-6 flex flex-col gap-8 z-50">
           <div className="flex items-center gap-3 px-2">
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg border border-white/10"
-              style={{ background: 'radial-gradient(circle, #F8FAFC 0%, #CBD5E1 100%)' }}
+              className="w-10 h-10 rounded-full flex items-center justify-center font-black text-xl shadow-lg border-2 border-amber-600"
+              style={{ background: 'radial-gradient(circle, #FDE68A 0%, #D4AF37 100%)' }}
             >
-              <span style={{ filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.3))' }}>5</span>
+              <span style={{ color: '#A01C1C', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>5</span>
             </div>
             <span className="text-white font-bold text-xl tracking-tight">PentaTrack</span>
           </div>
