@@ -236,7 +236,7 @@ const App: React.FC = () => {
           {currentUser.role === 'athlete' ? (
             <button onClick={() => { setEditingSession(null); setActiveTab('add'); }} className="w-14 h-14 -mt-8 bg-club-primary text-white rounded-full flex items-center justify-center shadow-lg border-4 border-slate-900 transition-transform active:scale-90" style={{ backgroundColor: 'var(--club-primary)' }}><PlusIcon className="w-8 h-8" /></button>
           ) : (
-            <NavButton active={activeTab === 'analyse'} onClick={() => setActiveTab('analyse'} icon={<PresentationChartLineIcon className="w-6 h-6" />} label="Analyse" />
+            <NavButton active={activeTab === 'analyse'} onClick={() => setActiveTab('analyse')} icon={<PresentationChartLineIcon className="w-6 h-6" />} label="Analyse" />
           )}
           <NavButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<UserCircleIcon className="w-6 h-6" />} label="Profil" />
         </nav>
