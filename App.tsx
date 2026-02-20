@@ -8,7 +8,8 @@ import {
   BellAlertIcon,
   ArrowDownTrayIcon,
   KeyIcon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { supabase } from './supabaseClient';
 import { User, Session, ClubInfo, Tab } from './types';
@@ -65,7 +66,7 @@ const App: React.FC = () => {
   };
 
   const fetchSessions = useCallback(async (userId: string, role: string, club: string) => {
-    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(1000);
+    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(2000);
     if (role === 'athlete') {
       query = query.eq('user_id', userId);
     } else {
@@ -171,6 +172,24 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCleanupSimulation = async () => {
+    if (!currentUser || currentUser.email !== SIMULATION_EMAIL) return;
+    if (!confirm('Êtes-vous sûr de vouloir supprimer TOUTES vos sessions d\'entraînement ? Cette action est irréversible.')) return;
+
+    setIsSimulating(true);
+    try {
+      const { error } = await supabase.from('training_sessions').delete().eq('user_id', currentUser.id);
+      if (error) throw error;
+      alert('Toutes les sessions ont été supprimées.');
+      fetchSessions(currentUser.id, currentUser.role, currentUser.club);
+    } catch (error) {
+      alert('Erreur lors du nettoyage des données.');
+      console.error(error);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
@@ -211,11 +230,17 @@ const App: React.FC = () => {
             
             {currentUser!.email === SIMULATION_EMAIL && (
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-amber-50 text-amber-500 rounded-xl">
-                    <PresentationChartLineIcon className="w-5 h-5" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-50 text-amber-500 rounded-xl">
+                      <PresentationChartLineIcon className="w-5 h-5" />
+                    </div>
+                    <h3 className="font-bold text-slate-900">Simulation de données</h3>
                   </div>
-                  <h3 className="font-bold text-slate-900">Simulation de données</h3>
+                  <div className="text-right">
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total sessions</div>
+                    <div className="text-lg font-black text-amber-600">{sessions.length}</div>
+                  </div>
                 </div>
                 <p className="text-sm text-slate-500 leading-relaxed">
                   Génère un historique d'entraînement réaliste (Sept. 2023 - Aujourd'hui) pour tester les outils d'analyse.
@@ -225,19 +250,28 @@ const App: React.FC = () => {
                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                       <div 
                         className="bg-amber-500 h-full transition-all duration-300" 
-                        style={{ width: `${simulationProgress}%` }}
+                        style={{ width: `${simulationProgress || 0}%` }}
                       />
                     </div>
-                    <p className="text-center text-xs font-bold text-amber-600">Génération en cours... {simulationProgress}%</p>
+                    <p className="text-center text-xs font-bold text-amber-600">Action en cours... {simulationProgress !== null ? `${simulationProgress}%` : ''}</p>
                   </div>
                 ) : (
-                  <button 
-                    onClick={handleGenerateSimulation}
-                    className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white font-bold py-4 rounded-2xl hover:bg-amber-600 transition-all shadow-sm"
-                  >
-                    <PresentationChartLineIcon className="w-5 h-5" />
-                    Générer Simulation (Saison complète)
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <button 
+                      onClick={handleGenerateSimulation}
+                      className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white font-bold py-4 rounded-2xl hover:bg-amber-600 transition-all shadow-sm"
+                    >
+                      <PresentationChartLineIcon className="w-5 h-5" />
+                      Générer Simulation (Saison complète)
+                    </button>
+                    <button 
+                      onClick={handleCleanupSimulation}
+                      className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 font-bold py-3 rounded-2xl hover:bg-red-100 transition-all border border-red-100"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                      Nettoyer mes données
+                    </button>
+                  </div>
                 )}
               </div>
             )}
