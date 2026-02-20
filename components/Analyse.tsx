@@ -10,7 +10,9 @@ import {
   ClockIcon,
   MapPinIcon,
   XMarkIcon,
-  ChatBubbleLeftEllipsisIcon
+  ChatBubbleLeftEllipsisIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 interface AnalyseProps {
@@ -33,12 +35,12 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
   
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<{ discipline: Discipline, week: number } | null>(null);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const clubAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active),
   [allUsers, currentUser.club]);
 
-  const currentYear = new Date().getFullYear();
   const weeks = Array.from({ length: 52 }, (_, i) => i + 1);
 
   const getWeekNumber = (date: Date) => {
@@ -50,7 +52,7 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
   };
 
   const getMonthNameForWeek = (week: number) => {
-    const d = new Date(currentYear, 0, 1 + (week - 1) * 7);
+    const d = new Date(selectedYear, 0, 1 + (week - 1) * 7);
     return d.toLocaleDateString('fr-FR', { month: 'short' });
   };
 
@@ -71,7 +73,7 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
       }
     });
     return blocks;
-  }, [weeks, currentYear]);
+  }, [weeks, selectedYear]);
 
   const filteredSessions = useMemo(() => {
     if (!selectedAthleteId) return [];
@@ -87,7 +89,7 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
 
     filteredSessions.forEach(s => {
       const d = new Date(s.date);
-      if (d.getFullYear() === currentYear) {
+      if (d.getFullYear() === selectedYear) {
         const w = getWeekNumber(d);
         if (data[s.discipline] && data[s.discipline][w]) {
           data[s.discipline][w].rpeSum += s.rpe;
@@ -99,7 +101,7 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
     });
 
     return data;
-  }, [filteredSessions, weeks, currentYear]);
+  }, [filteredSessions, weeks, selectedYear]);
 
   const maxValuesByDisc = useMemo(() => {
     const maxes: Record<string, number> = {};
@@ -181,9 +183,26 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
           {currentClubInfo?.logo_url && (
             <img src={currentClubInfo.logo_url} alt="Logo" className="h-10 w-10 object-contain" />
           )}
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 leading-none">Analyse de Saison {currentYear}</h1>
-            <p className="text-slate-400 text-[10px] italic mt-1 font-medium">Périodisation et charge de travail</p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100">
+              <button 
+                onClick={() => setSelectedYear(prev => prev - 1)}
+                className="p-1 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors"
+                title="Année précédente"
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+              </button>
+              <h1 className="text-xl font-bold text-slate-900 leading-none">Saison {selectedYear}</h1>
+              <button 
+                onClick={() => setSelectedYear(prev => prev + 1)}
+                disabled={selectedYear >= new Date().getFullYear()}
+                className="p-1 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Année suivante"
+              >
+                <ChevronRightIcon className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-slate-400 text-[10px] italic font-medium">Périodisation et charge de travail</p>
           </div>
         </div>
 
