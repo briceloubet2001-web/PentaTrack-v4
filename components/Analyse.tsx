@@ -23,36 +23,49 @@ interface AnalyseProps {
   isDesktop: boolean;
 }
 
+const getWeekNumber = (date: Date) => {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+};
+
+const getISOWeeksInYear = (year: number) => {
+  const d = new Date(year, 11, 31);
+  const week = getWeekNumber(d);
+  return week === 1 ? getWeekNumber(new Date(year, 11, 24)) : week;
+};
+
 const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInfo, allUsers, isDesktop }) => {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   const [hoveredWeek, setHoveredWeek] = useState<number | null>(null);
-  const [activeWeek, setActiveWeek] = useState<number>(() => {
-    const d = new Date();
-    const oneJan = new Date(d.getFullYear(), 0, 1);
-    const numberOfDays = Math.floor((d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.ceil((d.getDay() + 1 + numberOfDays) / 7);
-  });
+  const [activeWeek, setActiveWeek] = useState<number>(() => getWeekNumber(new Date()));
   
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<{ discipline: Discipline, week: number } | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
+  // Reset active week when year changes
+  React.useEffect(() => {
+    const now = new Date();
+    if (selectedYear === now.getFullYear()) {
+      setActiveWeek(getWeekNumber(now));
+    } else {
+      // For past years, default to the last week of the year
+      setActiveWeek(getISOWeeksInYear(selectedYear));
+    }
+  }, [selectedYear]);
+
   const clubAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active),
   [allUsers, currentUser.club]);
 
-  const weeks = Array.from({ length: 52 }, (_, i) => i + 1);
-
-  const getWeekNumber = (date: Date) => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  };
+  const weeks = useMemo(() => Array.from({ length: getISOWeeksInYear(selectedYear) }, (_, i) => i + 1), [selectedYear]);
 
   const getMonthNameForWeek = (week: number) => {
-    const d = new Date(selectedYear, 0, 1 + (week - 1) * 7);
+    // Find a date in the middle of the week to get the month
+    const d = new Date(selectedYear, 0, 1 + (week - 1) * 7 + 3);
     return d.toLocaleDateString('fr-FR', { month: 'short' });
   };
 
