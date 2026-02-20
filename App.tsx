@@ -19,8 +19,10 @@ import Stats from './components/Stats';
 import Analyse from './components/Analyse';
 import BackupTool from './components/BackupTool';
 import PasswordChangeForm from './components/PasswordChangeForm';
+import { generateSimulationData } from './utils/simulationGenerator';
 
 const ADMIN_EMAIL = 'briceloubet2001@gmail.com';
+const SIMULATION_EMAIL = 'penta2001@hotmail.fr';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -48,6 +50,8 @@ const App: React.FC = () => {
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [isChangingPasswordManual, setIsChangingPasswordManual] = useState(false);
   const [lastBackupDate, setLastBackupDate] = useState<string | null>(localStorage.getItem('penta_last_backup'));
+  const [simulationProgress, setSimulationProgress] = useState<number | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
@@ -146,6 +150,27 @@ const App: React.FC = () => {
     if (!error && currentUser) fetchSessions(currentUser.id, currentUser.role, currentUser.club);
   };
 
+  const handleGenerateSimulation = async () => {
+    if (!currentUser || currentUser.email !== SIMULATION_EMAIL) return;
+    if (!confirm('Générer une simulation de sessions réalistes de Septembre 2023 à aujourd\'hui ? Cela ajoutera environ 1800 sessions.')) return;
+
+    setIsSimulating(true);
+    setSimulationProgress(0);
+    try {
+      const count = await generateSimulationData(currentUser.id, (progress) => {
+        setSimulationProgress(progress);
+      });
+      alert(`${count} sessions générées avec succès !`);
+      fetchSessions(currentUser.id, currentUser.role, currentUser.club);
+    } catch (error) {
+      alert('Erreur lors de la génération de la simulation.');
+      console.error(error);
+    } finally {
+      setIsSimulating(false);
+      setSimulationProgress(null);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
@@ -183,6 +208,40 @@ const App: React.FC = () => {
             </div>
             {deferredPrompt && <div className="p-4 bg-amber-50 border border-amber-200 rounded-3xl space-y-3"><div className="flex gap-3"><ArrowDownTrayIcon className="w-6 h-6 text-amber-600 shrink-0" /><div><h4 className="font-bold text-amber-900 text-sm">Application non installée</h4><p className="text-xs text-amber-700 leading-relaxed">Installe PentaTrack sur ton écran d'accueil pour un accès plus rapide.</p></div></div><button onClick={handleInstallApp} className="w-full bg-amber-500 text-white font-bold py-3 rounded-2xl hover:bg-amber-600 transition-all shadow-md flex items-center justify-center gap-2"><PlusIcon className="w-5 h-5" />Installer maintenant</button></div>}
             {currentUser!.email === ADMIN_EMAIL && <BackupTool onBackupComplete={() => { localStorage.setItem('penta_last_backup', new Date().toISOString()); setLastBackupDate(new Date().toISOString()); }} />}
+            
+            {currentUser!.email === SIMULATION_EMAIL && (
+              <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-50 text-amber-500 rounded-xl">
+                    <PresentationChartLineIcon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-slate-900">Simulation de données</h3>
+                </div>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Génère un historique d'entraînement réaliste (Sept. 2023 - Aujourd'hui) pour tester les outils d'analyse.
+                </p>
+                {isSimulating ? (
+                  <div className="space-y-2">
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-amber-500 h-full transition-all duration-300" 
+                        style={{ width: `${simulationProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-center text-xs font-bold text-amber-600">Génération en cours... {simulationProgress}%</p>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={handleGenerateSimulation}
+                    className="w-full flex items-center justify-center gap-2 bg-amber-500 text-white font-bold py-4 rounded-2xl hover:bg-amber-600 transition-all shadow-sm"
+                  >
+                    <PresentationChartLineIcon className="w-5 h-5" />
+                    Générer Simulation (Saison complète)
+                  </button>
+                )}
+              </div>
+            )}
+
             <button onClick={() => supabase.auth.signOut()} className="w-full flex items-center justify-center gap-3 bg-red-50 text-red-600 font-bold py-4 rounded-2xl hover:bg-red-100 transition-all border border-red-100"><ArrowLeftOnRectangleIcon className="w-6 h-6" />Se déconnecter</button>
           </div>
         );
