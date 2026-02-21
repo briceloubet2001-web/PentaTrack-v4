@@ -66,7 +66,7 @@ const App: React.FC = () => {
   };
 
   const fetchSessions = useCallback(async (userId: string, role: string, club: string) => {
-    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(2000);
+    let query = supabase.from('training_sessions').select('*').order('date', { ascending: false }).limit(5000);
     if (role === 'athlete') {
       query = query.eq('user_id', userId);
     } else {
