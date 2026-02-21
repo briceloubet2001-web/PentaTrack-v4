@@ -1,7 +1,8 @@
 
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Session, User, ClubInfo, Discipline } from '../types';
 import { DISCIPLINE_CONFIG } from '../constants';
+import { supabase } from '../supabaseClient';
 import { 
   ComputerDesktopIcon, 
   DevicePhoneMobileIcon, 
@@ -45,6 +46,8 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerData, setDrawerData] = useState<{ discipline: Discipline, week: number } | null>(null);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [yearSessions, setYearSessions] = useState<Session[]>([]);
+  const [isYearLoading, setIsYearLoading] = useState(false);
 
   // Reset active week when year changes
   React.useEffect(() => {
@@ -56,6 +59,39 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
       setActiveWeek(getISOWeeksInYear(selectedYear));
     }
   }, [selectedYear]);
+
+  // Fetch sessions for the selected year and athlete
+  useEffect(() => {
+    const fetchYearData = async () => {
+      if (!selectedAthleteId) {
+        setYearSessions([]);
+        return;
+      }
+
+      setIsYearLoading(true);
+      try {
+        const startDate = `${selectedYear}-01-01`;
+        const endDate = `${selectedYear}-12-31`;
+        
+        const { data, error } = await supabase
+          .from('training_sessions')
+          .select('*')
+          .eq('user_id', selectedAthleteId)
+          .gte('date', startDate)
+          .lte('date', endDate)
+          .order('date', { ascending: true });
+
+        if (error) throw error;
+        setYearSessions(data || []);
+      } catch (err) {
+        console.error('Error fetching year sessions:', err);
+      } finally {
+        setIsYearLoading(false);
+      }
+    };
+
+    fetchYearData();
+  }, [selectedYear, selectedAthleteId]);
 
   const clubAthletes = useMemo(() => 
     allUsers.filter(u => u.role === 'athlete' && u.club === currentUser.club && u.active),
@@ -89,9 +125,8 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
   }, [weeks, selectedYear]);
 
   const filteredSessions = useMemo(() => {
-    if (!selectedAthleteId) return [];
-    return sessions.filter(s => s.user_id === selectedAthleteId);
-  }, [sessions, selectedAthleteId]);
+    return yearSessions;
+  }, [yearSessions]);
 
   const matrixData = useMemo(() => {
     const data: Record<Discipline, Record<number, { rpeSum: number, km: number, count: number, sessions: Session[] }>> = {} as any;
@@ -262,6 +297,14 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
 
           {/* Main Matrix Container - Scroll unique */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto relative no-scrollbar">
+            {isYearLoading && (
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-20 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Chargement de l'année...</p>
+                </div>
+              </div>
+            )}
             <div className="min-w-max">
               
               {/* Header Temporel : Sticky Top + Sync horizontal par défaut car dans le flux */}
