@@ -45,6 +45,8 @@ const App: React.FC = () => {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
   
@@ -55,6 +57,14 @@ const App: React.FC = () => {
   const [isSimulating, setIsSimulating] = useState(false);
 
   useEffect(() => {
+    // Détection iOS
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIOS(ios);
+
+    // Détection si déjà installé
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    setIsStandalone(!!standalone);
+
     const handleResize = () => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -128,6 +138,11 @@ const App: React.FC = () => {
   }, [loadUserData]);
 
   const handleInstallApp = async () => {
+    if (isIOS) {
+      alert("Pour installer l'application sur votre iPhone :\n\n1. Cliquez sur le bouton 'Partager' en bas de Safari (le carré avec une flèche).\n2. Faites défiler et cliquez sur 'Sur l'écran d'accueil'.");
+      return;
+    }
+
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -225,7 +240,33 @@ const App: React.FC = () => {
               <div className="flex items-center gap-3"><div className="p-2 bg-slate-50 text-slate-500 rounded-xl"><KeyIcon className="w-5 h-5" /></div><h3 className="font-bold text-slate-900">Sécurité</h3></div>
               {isChangingPasswordManual ? <PasswordChangeForm userId={currentUser!.id} onSuccess={() => setIsChangingPasswordManual(false)} onCancel={() => setIsChangingPasswordManual(false)} primaryColor={currentClubInfo?.primary_color} /> : <button onClick={() => setIsChangingPasswordManual(true)} className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 font-bold py-4 rounded-2xl hover:bg-slate-100 transition-all border border-slate-100"><KeyIcon className="w-5 h-5" />Changer mon mot de passe</button>}
             </div>
-            {deferredPrompt && <div className="p-4 bg-amber-50 border border-amber-200 rounded-3xl space-y-3"><div className="flex gap-3"><ArrowDownTrayIcon className="w-6 h-6 text-amber-600 shrink-0" /><div><h4 className="font-bold text-amber-900 text-sm">Application non installée</h4><p className="text-xs text-amber-700 leading-relaxed">Installe PentaTrack sur ton écran d'accueil pour un accès plus rapide.</p></div></div><button onClick={handleInstallApp} className="w-full bg-amber-500 text-white font-bold py-3 rounded-2xl hover:bg-amber-600 transition-all shadow-md flex items-center justify-center gap-2"><PlusIcon className="w-5 h-5" />Installer maintenant</button></div>}
+
+            {/* Bannière d'installation (Visible si pas installé) */}
+            {((deferredPrompt || isIOS) && !isStandalone) && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-3xl space-y-3 animate-in slide-in-from-bottom-2 duration-500">
+                <div className="flex gap-3">
+                  <div className="p-2 bg-amber-100 text-amber-600 rounded-xl shrink-0">
+                    <ArrowDownTrayIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-amber-900 text-sm">Application non installée</h4>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      {isIOS 
+                        ? "Installe PentaTrack sur ton iPhone pour un accès plus rapide et fluide."
+                        : "Installe PentaTrack sur ton écran d'accueil pour un accès plus rapide."}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={handleInstallApp} 
+                  className="w-full bg-amber-500 text-white font-bold py-3 rounded-2xl hover:bg-amber-600 transition-all shadow-md flex items-center justify-center gap-2"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  {isIOS ? "Comment installer ?" : "Installer maintenant"}
+                </button>
+              </div>
+            )}
+
             {currentUser!.email === ADMIN_EMAIL && <BackupTool onBackupComplete={() => { localStorage.setItem('penta_last_backup', new Date().toISOString()); setLastBackupDate(new Date().toISOString()); }} />}
             
             {currentUser!.email === SIMULATION_EMAIL && (
