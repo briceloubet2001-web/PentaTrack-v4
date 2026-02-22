@@ -157,7 +157,11 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
       let m = 0;
       weeks.forEach(w => {
         const stats = matrixData[disc][w];
-        const val = (disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') ? stats.km : stats.count;
+        let val = (disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') ? stats.km : stats.count;
+        // Pour la ligne Course, on combine avec le Laser Run pour l'échelle
+        if (disc === 'Course') {
+          val += matrixData['Laser Run'][w].km;
+        }
         if (val > m) m = val;
       });
       maxes[disc] = m || 1;
@@ -362,7 +366,7 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
 
                 {/* Lignes de disciplines */}
                 {(Object.keys(DISCIPLINE_CONFIG) as Discipline[])
-                  .filter(d => d !== 'Médical')
+                  .filter(d => d !== 'Médical' && d !== 'Laser Run')
                   .map(disc => (
                   <div key={disc} className="flex border-b border-slate-50 transition-colors h-20 hover:bg-slate-50/20 group/row">
                     <div 
@@ -370,13 +374,22 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
                       style={{ width: `${LABEL_WIDTH}px` }}
                     >
                       <span className="text-xl shrink-0">{DISCIPLINE_CONFIG[disc].icon}</span>
-                      <span className="text-[10px] font-bold text-slate-600 truncate uppercase tracking-tighter">{disc}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[10px] font-bold text-slate-600 truncate uppercase tracking-tighter">{disc}</span>
+                        {disc === 'Course' && (
+                          <span className="text-[8px] font-bold text-purple-600 leading-none mt-0.5 whitespace-nowrap">dont laser run</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-end bg-white/40">
                       {weeks.map(w => {
                         const stats = matrixData[disc][w];
+                        const laserRunStats = matrixData['Laser Run'][w];
+                        const isCourse = disc === 'Course';
+                        
                         const val = (disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') ? stats.km : stats.count;
-                        const height = (val / maxValuesByDisc[disc]) * 100;
+                        const totalVal = isCourse ? (stats.km + laserRunStats.km) : val;
+                        const height = (totalVal / maxValuesByDisc[disc]) * 100;
                         const isSelected = activeWeek === w;
                         
                         return (
@@ -388,19 +401,32 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
                             onMouseLeave={() => setHoveredWeek(null)}
                             onClick={() => handleBarClick(disc, w)}
                           >
-                            {val > 0 && (
+                            {totalVal > 0 && (
                               <div 
-                                className="w-[16px] mx-auto rounded-t-sm transition-all relative flex flex-col justify-end items-center group-hover/bar:scale-x-110"
+                                className="w-[16px] mx-auto rounded-t-sm transition-all relative flex flex-col justify-end items-center group-hover/bar:scale-x-110 overflow-hidden"
                                 style={{ 
                                   height: `${Math.max(height, 20)}%`, 
-                                  backgroundColor: DISCIPLINE_CONFIG[disc].hexColor,
+                                  backgroundColor: isCourse ? undefined : DISCIPLINE_CONFIG[disc].hexColor,
                                   opacity: isSelected ? 1 : 0.8
                                 }}
                               >
-                                <span className="text-[8px] font-black text-white mb-1 drop-shadow-sm pointer-events-none">
-                                  {(disc === 'Natation' || disc === 'Course' || disc === 'Laser Run') 
-                                    ? (stats.km >= 10 ? stats.km.toFixed(0) : stats.km.toFixed(1))
-                                    : stats.count}
+                                {isCourse ? (
+                                  <div className="w-full h-full flex flex-col-reverse">
+                                    {/* Course part (Green) */}
+                                    <div 
+                                      className="w-full bg-green-600" 
+                                      style={{ height: `${(stats.km / totalVal) * 100}%` }}
+                                    />
+                                    {/* Laser Run part (Purple) */}
+                                    <div 
+                                      className="w-full bg-purple-600" 
+                                      style={{ height: `${(laserRunStats.km / totalVal) * 100}%` }}
+                                    />
+                                  </div>
+                                ) : null}
+                                
+                                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black text-white drop-shadow-sm pointer-events-none z-10">
+                                  {totalVal >= 10 ? totalVal.toFixed(0) : totalVal.toFixed(1)}
                                 </span>
                               </div>
                             )}
@@ -409,8 +435,14 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
                             <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/bar:block z-40 pointer-events-none">
                               <div className="bg-slate-900 text-white text-[9px] p-2 rounded-lg shadow-2xl border border-white/10 whitespace-nowrap font-bold">
                                 {disc} - S{w}<br/>
-                                {stats.km > 0 && <span>Distance: {stats.km.toFixed(1)}km<br/></span>}
-                                Sessions: {stats.count}
+                                {totalVal > 0 && (
+                                  <span>
+                                    Distance: {totalVal.toFixed(1)}km
+                                    {isCourse && laserRunStats.km > 0 && ` (dont ${laserRunStats.km.toFixed(1)}km laser run)`}
+                                    <br/>
+                                  </span>
+                                )}
+                                Sessions: {isCourse ? (stats.count + laserRunStats.count) : stats.count}
                               </div>
                               <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 mx-auto -mt-0.5" />
                             </div>
@@ -460,22 +492,36 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
                   <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Séances</div>
-                  <div className="text-xl font-black text-slate-900">{matrixData[drawerData.discipline][drawerData.week].count}</div>
+                  <div className="text-xl font-black text-slate-900">
+                    {drawerData.discipline === 'Course' 
+                      ? (matrixData['Course'][drawerData.week].count + matrixData['Laser Run'][drawerData.week].count)
+                      : matrixData[drawerData.discipline][drawerData.week].count}
+                  </div>
                 </div>
                 {(drawerData.discipline === 'Natation' || drawerData.discipline === 'Course' || drawerData.discipline === 'Laser Run') && (
                   <div className="bg-club-primary/10 p-3 rounded-xl border border-club-primary/20 text-center">
                     <div className="text-[9px] font-black text-club-primary uppercase tracking-widest mb-1">Total Km</div>
-                    <div className="text-xl font-black text-club-primary">{matrixData[drawerData.discipline][drawerData.week].km.toFixed(1)}</div>
+                    <div className="text-xl font-black text-club-primary">
+                      {drawerData.discipline === 'Course'
+                        ? (matrixData['Course'][drawerData.week].km + matrixData['Laser Run'][drawerData.week].km).toFixed(1)
+                        : matrixData[drawerData.discipline][drawerData.week].km.toFixed(1)}
+                    </div>
                   </div>
                 )}
               </div>
 
               <div className="space-y-3">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 pb-1.5">Historique semaine</h4>
-                {matrixData[drawerData.discipline][drawerData.week].sessions.length === 0 ? (
+                {[
+                  ...matrixData[drawerData.discipline][drawerData.week].sessions,
+                  ...(drawerData.discipline === 'Course' ? matrixData['Laser Run'][drawerData.week].sessions : [])
+                ].length === 0 ? (
                   <p className="text-xs text-slate-400 italic">Aucune séance cette semaine.</p>
                 ) : (
-                  matrixData[drawerData.discipline][drawerData.week].sessions
+                  [
+                    ...matrixData[drawerData.discipline][drawerData.week].sessions,
+                    ...(drawerData.discipline === 'Course' ? matrixData['Laser Run'][drawerData.week].sessions : [])
+                  ]
                     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                     .map(s => (
                       <div key={s.id} className="p-3.5 rounded-xl bg-white border border-slate-100 shadow-sm space-y-2.5">
