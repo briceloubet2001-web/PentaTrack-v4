@@ -412,15 +412,15 @@ const Analyse: React.FC<AnalyseProps> = ({ sessions, currentUser, currentClubInf
                               >
                                 {isCourse ? (
                                   <div className="w-full h-full flex flex-col-reverse">
-                                    {/* Course part (Green) */}
-                                    <div 
-                                      className="w-full bg-green-600" 
-                                      style={{ height: `${(stats.km / totalVal) * 100}%` }}
-                                    />
                                     {/* Laser Run part (Purple) */}
                                     <div 
                                       className="w-full bg-purple-600" 
                                       style={{ height: `${(laserRunStats.km / totalVal) * 100}%` }}
+                                    />
+                                    {/* Course part (Green) */}
+                                    <div 
+                                      className="w-full bg-green-600" 
+                                      style={{ height: `${(stats.km / totalVal) * 100}%` }}
                                     />
                                   </div>
                                 ) : null}
